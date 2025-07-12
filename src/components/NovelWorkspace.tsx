@@ -15,7 +15,8 @@ import {
   Button,
   IconButton,
   AppBar,
-  Toolbar
+  Toolbar,
+  useTheme
 } from '@mui/material';
 import {
   Book as BookIcon,
@@ -60,9 +61,11 @@ const NovelWorkspace: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
   const tags = useSelector((state: RootState) => state.tags.tags);
+  const theme = useSelector((state: RootState) => state.theme);
   const dispatch = useDispatch();
 
   const { isMobile } = useResponsive();
+  const muiTheme = useTheme();
 
   // カスタムフックの使用
   const { drawerWidth, isResizing, handleMouseDown, handleDoubleClick } = useDrawerResize({
@@ -166,6 +169,12 @@ const NovelWorkspace: React.FC = () => {
       onClick: () => setSettingsModalOpen(true)
     }
   ];
+
+  // アイコンを選択する関数
+  const getIconSrc = () => {
+    const isDarkMode = muiTheme.palette.mode === 'dark';
+    return process.env.PUBLIC_URL + (isDarkMode ? '/bluefish_icon_light.png' : '/bluefish_icon.png');
+  };
 
   // モバイル用のレイアウト
   if (isMobile) {
@@ -316,7 +325,7 @@ const NovelWorkspace: React.FC = () => {
         <Box sx={{ pt: 3, pl: 3, pr: 3, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <img
-              src={process.env.PUBLIC_URL + '/bluefish_icon.png'}
+              src={getIconSrc()}
               alt="BlueFish Icon"
               style={{ width: 32, height: 32, marginRight: 8 }}
             />

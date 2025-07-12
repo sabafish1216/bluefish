@@ -6,7 +6,8 @@ import {
   Typography,
   Tabs,
   Tab,
-  List
+  List,
+  useTheme
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -59,6 +60,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
   const tags = useSelector((state: RootState) => state.tags.tags);
+  const muiTheme = useTheme();
 
   const { expandedFolders, expandedTags, toggleFolderExpansion, toggleTagExpansion } = useExpansionState();
   const { novelsByFolder, novelsByTag } = useNovelData(novels, folders, tags);
@@ -91,6 +93,12 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
     }
   ];
 
+  // アイコンを選択する関数
+  const getIconSrc = () => {
+    const isDarkMode = muiTheme.palette.mode === 'dark';
+    return process.env.PUBLIC_URL + (isDarkMode ? '/bluefish_icon_light.png' : '/bluefish_icon.png');
+  };
+
   return (
     <Drawer
       anchor="left"
@@ -119,7 +127,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <img
-            src={process.env.PUBLIC_URL + '/bluefish_icon.png'}
+            src={getIconSrc()}
             alt="BlueFish Icon"
             style={{ width: 24, height: 24 }}
           />
