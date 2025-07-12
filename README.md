@@ -32,7 +32,7 @@ BlueFishは、React・TypeScript・Redux・MUIを使用したモダンな小説�
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/sabafish1028/bluefish.git
+git clone https://github.com/sabafish1216/bluefish.git
 cd bluefish
 
 # 依存関係をインストール
@@ -63,7 +63,7 @@ npm test
 
 このアプリはGitHub Pagesで自動デプロイされています。
 
-- **本番環境**: https://sabafish1028.github.io/bluefish
+- **本番環境**: https://sabafish1216.github.io/bluefish
 - **自動ビルド**: mainブランチにプッシュすると自動でビルド・デプロイされます
 
 ## 開発
