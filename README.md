@@ -1,46 +1,104 @@
-# Getting Started with Create React App
+# BlueFish - 小説執筆アプリ
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+BlueFishは、React・TypeScript・Redux・MUIを使用したモダンな小説執筆アプリケーションです。
 
-## Available Scripts
+## 特徴
 
-In the project directory, you can run:
+- 📝 **直感的な執筆環境**: シンプルで使いやすい執筆インターフェース
+- 📱 **レスポンシブデザイン**: デスクトップとモバイルの両方に対応
+- 🏷️ **タグ管理**: 作品にタグを付けて整理
+- 📁 **フォルダ管理**: 作品をフォルダで分類
+- 📊 **分析機能**: 執筆状況の可視化
+- ⚙️ **カスタマイズ可能**: フォントサイズ、行番号表示、文字数表示などの設定
+- 🌙 **ダークモード対応**: ライト/ダークモードの切り替え
 
-### `npm start`
+## 技術スタック
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **フロントエンド**: React 19, TypeScript
+- **状態管理**: Redux Toolkit
+- **UIライブラリ**: Material-UI (MUI)
+- **ルーティング**: React Router
+- **永続化**: Redux Persist
+- **ビルドツール**: Create React App
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## セットアップ
 
-### `npm test`
+### 前提条件
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js 18.x以上
+- npm または yarn
 
-### `npm run build`
+### インストール
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+# リポジトリをクローン
+git clone https://github.com/sabafish1028/bluefish.git
+cd bluefish
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# 依存関係をインストール
+npm install
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# 開発サーバーを起動
+npm start
+```
 
-### `npm run eject`
+### ビルド
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+# 本番用ビルド
+npm run build
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# テスト実行
+npm test
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 使用方法
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+1. **作品の作成**: 左上の「+」ボタンで新しい作品を作成
+2. **執筆**: 右側のエリアで本文を入力
+3. **管理**: 左側のサイドバーで作品、フォルダ、タグを管理
+4. **設定**: 右上の設定ボタンでアプリの設定を変更
 
-## Learn More
+## デプロイ
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+このアプリはGitHub Pagesで自動デプロイされています。
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **本番環境**: https://sabafish1028.github.io/bluefish
+- **自動ビルド**: mainブランチにプッシュすると自動でビルド・デプロイされます
+
+## 開発
+
+### プロジェクト構造
+
+```
+src/
+├── components/          # Reactコンポーネント
+│   ├── common/         # 共通コンポーネント
+│   └── ...
+├── features/           # Reduxスライス
+├── hooks/              # カスタムフック
+├── constants/          # 定数
+├── types/              # TypeScript型定義
+├── store/              # Reduxストア設定
+└── pages/              # ページコンポーネント
+```
+
+### 貢献
+
+1. このリポジトリをフォーク
+2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
+
+## ライセンス
+
+このプロジェクトはMITライセンスの下で公開されています。
+
+## 作者
+
+Ryuto Kobayashi
+
+---
+
+**BlueFish** - あなたの創作活動をサポートする小説執筆アプリ
