@@ -61,7 +61,6 @@ const NovelWorkspace: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
   const tags = useSelector((state: RootState) => state.tags.tags);
-  const theme = useSelector((state: RootState) => state.theme);
   const dispatch = useDispatch();
 
   const { isMobile } = useResponsive();
