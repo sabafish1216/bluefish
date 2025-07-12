@@ -1,2 +1,2 @@
-export * from './analytics';
-export * from './novel'; 
+export * from './novel';
+export * from './analytics'; 

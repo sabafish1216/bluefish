@@ -175,13 +175,13 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     const lines = body.split('\n');
     return (
       <Box
-        sx={{
+        sx={(theme) => ({
           position: 'absolute',
           left: 0,
           top: 0,
           bottom: 0,
           width: 30,
-          backgroundColor: 'grey.100',
+          backgroundColor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
           borderRight: '1px solid #ccc',
           overflow: 'hidden',
           fontFamily: 'monospace',
@@ -193,7 +193,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
           padding: '12px 4px',
           boxSizing: 'border-box',
           lineHeight: 1.6,
-        }}
+        })}
       >
         {lines.map((_, index) => (
           <Box key={index} sx={{ height: '1.6em' }}>

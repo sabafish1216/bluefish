@@ -8,7 +8,7 @@ import {
   CardContent,
   List,
   ListItem,
-  Chip
+  Chip,
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -22,6 +22,9 @@ import { RootState } from '../store';
 import { useAnalyticsData } from '../hooks/useAnalyticsData';
 import { ANALYTICS_CONSTANTS } from '../constants/analytics';
 import EmptyState from './common/EmptyState';
+// import { useGoogleDriveGIS } from '../hooks/useGoogleDriveGIS'; // Google Drive連携未実装のためコメントアウト
+// Google Drive連携に関するUIや変数も未実装部分はコメントアウト
+// const { driveStatus, signIn, uploadData, ... } = useGoogleDriveGIS();
 
 // 統計カードコンポーネント
 interface StatCardProps {
@@ -48,145 +51,6 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color }) => (
     </CardContent>
   </Card>
 );
-
-// 頻出語彙バブルコンポーネント
-interface WordBubbleProps {
-  word: string;
-  count: number;
-  maxCount: number;
-  index: number;
-}
-
-const WordBubble: React.FC<WordBubbleProps> = ({ word, count, maxCount, index }) => {
-  const fontSize = Math.max(12, Math.min(32, 12 + (count / maxCount) * 20));
-  const padding = Math.max(4, Math.min(16, 4 + (count / maxCount) * 12));
-  const estimatedWidth = word.length * fontSize * 0.6 + padding * 3 + 30;
-  const estimatedHeight = fontSize + padding * 2;
-  
-  const normalizedCount = count / maxCount;
-  const radius = ANALYTICS_CONSTANTS.MAX_BUBBLE_RADIUS - (normalizedCount * (ANALYTICS_CONSTANTS.MAX_BUBBLE_RADIUS - ANALYTICS_CONSTANTS.MIN_BUBBLE_RADIUS));
-  
-  const angle = (index / ANALYTICS_CONSTANTS.MAX_WORD_FREQUENCY) * 2 * Math.PI;
-  const baseX = Math.cos(angle) * radius;
-  const baseY = Math.sin(angle) * radius;
-  
-  // 衝突検出と位置調整
-  const checkCollision = (x: number, y: number, width: number, height: number, positions: Array<{x: number, y: number, width: number, height: number}>) => {
-    return positions.some(pos => {
-      return !(x + width + ANALYTICS_CONSTANTS.BUBBLE_MARGIN < pos.x || 
-              pos.x + pos.width + ANALYTICS_CONSTANTS.BUBBLE_MARGIN < x || 
-              y + height + ANALYTICS_CONSTANTS.BUBBLE_MARGIN < pos.y || 
-              pos.y + pos.height + ANALYTICS_CONSTANTS.BUBBLE_MARGIN < y);
-    });
-  };
-  
-  const findValidPosition = (baseX: number, baseY: number, width: number, height: number, positions: Array<{x: number, y: number, width: number, height: number}>) => {
-    let x = baseX;
-    let y = baseY;
-    let attempts = 0;
-    
-    while (checkCollision(x, y, width, height, positions) && attempts < ANALYTICS_CONSTANTS.MAX_BUBBLE_ATTEMPTS) {
-      const angle = attempts * 0.4;
-      const radius = 25 + attempts * 6;
-      x = baseX + Math.cos(angle) * radius;
-      y = baseY + Math.sin(angle) * radius;
-      
-      const maxX = 300;
-      const maxY = 200;
-      x = Math.max(-maxX, Math.min(maxX, x));
-      y = Math.max(-maxY, Math.min(maxY, y));
-      
-      attempts++;
-    }
-    
-    return { x, y };
-  };
-  
-  const positions: Array<{x: number, y: number, width: number, height: number}> = [];
-  const { x, y } = findValidPosition(baseX, baseY, estimatedWidth, estimatedHeight, positions);
-  positions.push({ x, y, width: estimatedWidth, height: estimatedHeight });
-  
-  return (
-    <Chip
-      label={`${word} (${count})`}
-      sx={{
-        position: 'absolute',
-        left: '50%',
-        top: '50%',
-        transform: `translate(${x}px, ${y}px)`,
-        fontSize: `${fontSize}px`,
-        padding: `${padding}px`,
-        backgroundColor: `rgba(25, 118, 210, ${0.3 + normalizedCount * 0.7})`,
-        color: 'white',
-        fontWeight: 'bold',
-        border: '2px solid rgba(25, 118, 210, 0.8)',
-        '&:hover': {
-          backgroundColor: `rgba(25, 118, 210, ${0.5 + normalizedCount * 0.5})`,
-        }
-      }}
-    />
-  );
-};
-
-// ランキングアイテムコンポーネント
-interface RankingItemProps {
-  rank: number;
-  title: string;
-  characters: number;
-  words: number;
-}
-
-const RankingItem: React.FC<RankingItemProps> = ({ rank, title, characters, words }) => {
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return '#FFD700'; // 金
-      case 2: return '#C0C0C0'; // 銀
-      case 3: return '#CD7F32'; // 銅
-      default: return 'grey.400';
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    if (rank <= 3) {
-      return '🏆';
-    }
-    return `${rank}`;
-  };
-
-  return (
-    <ListItem sx={{ borderBottom: 1, borderColor: 'divider' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        width: '100%',
-        gap: 2
-      }}>
-        <Box sx={{ 
-          width: 40, 
-          height: 40, 
-          borderRadius: '50%', 
-          bgcolor: getRankColor(rank),
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: rank <= 3 ? '1.2rem' : '0.9rem'
-        }}>
-          {getRankIcon(rank)}
-        </Box>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {characters.toLocaleString()}文字 / {words.toLocaleString()}単語
-          </Typography>
-        </Box>
-      </Box>
-    </ListItem>
-  );
-};
 
 const AnalyticsPage: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
@@ -240,35 +104,23 @@ const AnalyticsPage: React.FC = () => {
         <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column' }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
             <BarChartIcon sx={{ mr: 1 }} />
-            頻出語彙 TOP {ANALYTICS_CONSTANTS.MAX_WORD_FREQUENCY}
+            頻出語彙ランキング TOP 10
           </Typography>
-          <Box sx={{ 
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            flexGrow: 1,
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 4
-          }}>
+          <List>
             {wordFrequency.length > 0 ? (
-              wordFrequency.map(({ word, count }, index) => (
-                <WordBubble
-                  key={word}
-                  word={word}
-                  count={count}
-                  maxCount={wordFrequency[0]?.count || 1}
-                  index={index}
-                />
+              wordFrequency.slice(0, 10).map((wordData, index) => (
+                <ListItem key={wordData.word} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
+                  <Chip label={`#${index + 1}`} color={index < 3 ? 'primary' : 'default'} sx={{ minWidth: 40, fontWeight: 'bold' }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', flexGrow: 1 }}>{wordData.word}</Typography>
+                  <Typography variant="body2" color="text.secondary">{wordData.count} 回</Typography>
+                </ListItem>
               ))
             ) : (
               <Typography variant="body2" color="text.secondary" textAlign="center">
                 頻出語彙のデータがありません
               </Typography>
             )}
-          </Box>
+          </List>
         </Paper>
 
         {/* 作品別ランキング */}
@@ -277,22 +129,65 @@ const AnalyticsPage: React.FC = () => {
             <TrendingUpIcon sx={{ mr: 1 }} />
             作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
           </Typography>
+          {/* 表彰台（1～3位） */}
+          {novelRanking.length > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 2, mb: 2 }}>
+              {/* 2位 */}
+              {novelRanking[1] && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Paper sx={{ width: 100, height: 100, bgcolor: '#C0C0C0', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.2rem', lineHeight: 1 }}>2</Typography>
+                  </Paper>
+                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 110 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[1].title.length > 12 ? novelRanking[1].title.slice(0,12) + '…' : novelRanking[1].title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{novelRanking[1].characters.toLocaleString()}字</Typography>
+                  </Box>
+                </Box>
+              )}
+              {/* 1位 */}
+              {novelRanking[0] && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Paper sx={{ width: 120, height: 120, bgcolor: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.7rem', lineHeight: 1 }}>1</Typography>
+                  </Paper>
+                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 130 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[0].title.length > 12 ? novelRanking[0].title.slice(0,12) + '…' : novelRanking[0].title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{novelRanking[0].characters.toLocaleString()}字</Typography>
+                  </Box>
+                </Box>
+              )}
+              {/* 3位 */}
+              {novelRanking[2] && (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Paper sx={{ width: 90, height: 90, bgcolor: '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: '1.8rem', lineHeight: 1 }}>3</Typography>
+                  </Paper>
+                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 100 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[2].title.length > 12 ? novelRanking[2].title.slice(0,12) + '…' : novelRanking[2].title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{novelRanking[2].characters.toLocaleString()}字</Typography>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+          {/* 4位以降リスト */}
           <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            {novelRanking.length > 0 ? (
+            {novelRanking.length > 3 ? (
               <List>
-                {novelRanking.map((novel, index) => (
-                  <RankingItem
-                    key={novel.title}
-                    rank={index + 1}
-                    title={novel.title}
-                    characters={novel.characters}
-                    words={novel.words}
-                  />
+                {novelRanking.slice(3).map((novel, index) => (
+                  <ListItem key={novel.title} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
+                    <Chip label={`#${index + 4}`} color='default' size='small' sx={{ minWidth: 32, fontWeight: 'bold', fontSize: '1rem' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', flexGrow: 1, fontSize: '1rem' }} noWrap>{novel.title}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.95rem' }}>{novel.characters.toLocaleString()}字</Typography>
+                  </ListItem>
                 ))}
               </List>
             ) : (
               <Typography variant="body2" color="text.secondary" textAlign="center">
-                ランキングデータがありません
+                4位以降のランキングデータがありません
               </Typography>
             )}
           </Box>

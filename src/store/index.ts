@@ -1,33 +1,42 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import novelsReducer from '../features/novels/novelsSlice';
-import tagsReducer from '../features/tags/tagsSlice';
 import foldersReducer from '../features/folders/foldersSlice';
-import themeReducer from '../features/theme/themeSlice';
+import tagsReducer from '../features/tags/tagsSlice';
 import settingsReducer from '../features/settings/settingsSlice';
-
-const rootReducer = combineReducers({
-  novels: novelsReducer,
-  tags: tagsReducer,
-  folders: foldersReducer,
-  theme: themeReducer,
-  settings: settingsReducer,
-});
+import themeReducer from '../features/theme/themeSlice';
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['novels', 'tags', 'folders', 'theme', 'settings'],
+  whitelist: ['novels', 'folders', 'tags', 'settings', 'theme']
 };
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+const persistedReducer = persistReducer(persistConfig, (state: any, action: any) => {
+  // 各スライスを個別に永続化
+  const novels = persistReducer({ key: 'novels', storage }, novelsReducer)(state?.novels, action);
+  const folders = persistReducer({ key: 'folders', storage }, foldersReducer)(state?.folders, action);
+  const tags = persistReducer({ key: 'tags', storage }, tagsReducer)(state?.tags, action);
+  const settings = persistReducer({ key: 'settings', storage }, settingsReducer)(state?.settings, action);
+  const theme = persistReducer({ key: 'theme', storage }, themeReducer)(state?.theme, action);
+
+  return {
+    novels,
+    folders,
+    tags,
+    settings,
+    theme
+  };
+});
 
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+      },
     }),
 });
 

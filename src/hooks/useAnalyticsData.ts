@@ -29,22 +29,21 @@ export const useAnalyticsData = (novels: Novel[]) => {
     };
   }, [novels]);
 
-  // 頻出語彙の分析
+  // 頻出語彙の分析（被りのないver）
   const wordFrequency = useMemo(() => {
     const allText = novels.map(novel => novel.body).join(' ');
-    
     // 日本語の単語を抽出（簡易的な実装）
     const words = allText
       .replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, ' ')
       .split(/\s+/)
       .filter(word => word.length >= 2 && word.length <= 10)
       .map(word => word.toLowerCase());
-    
+    // 被りのない語彙のみカウント
+    const uniqueWords = Array.from(new Set(words));
     const frequency: { [key: string]: number } = {};
-    words.forEach(word => {
-      frequency[word] = (frequency[word] || 0) + 1;
+    uniqueWords.forEach(word => {
+      frequency[word] = words.filter(w => w === word).length;
     });
-    
     // 上位20語を取得
     return Object.entries(frequency)
       .sort(([,a], [,b]) => b - a)
