@@ -61,7 +61,3 @@ src/
 ## ライセンス
 
 MIT License
-
-## 開発者
-
-BlueFish開発チーム
