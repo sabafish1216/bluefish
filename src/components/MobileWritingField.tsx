@@ -5,35 +5,23 @@ import {
   TextField,
   Button,
   Typography,
-  IconButton,
-  AppBar,
-  Toolbar,
   Paper,
-  Fab,
   SpeedDial,
   SpeedDialAction,
   SpeedDialIcon,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip
 } from '@mui/material';
 import {
   Save as SaveIcon,
   Cancel as CancelIcon,
-  ArrowBack as ArrowBackIcon,
-  Visibility as VisibilityIcon,
-  Settings as SettingsIcon,
-  Edit as EditIcon,
   Add as AddIcon,
   Title as TitleIcon,
   FormatSize as FormatSizeIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
-import { Novel, updateNovel } from '../features/novels/novelsSlice';
+import { Novel } from '../features/novels/novelsSlice';
 import { addFolder } from '../features/folders/foldersSlice';
-import { addTag, deleteTag } from '../features/tags/tagsSlice';
+import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
 import SettingsDialog from './common/SettingsDialog';
@@ -126,17 +114,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
-  const handleCancel = useCallback(() => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      setTitle(novel.title);
-      setBody(novel.body);
-      setSelectedTags(novel.tags);
-      setSelectedFolderId(novel.folderId);
-    }
-    setPendingTags([]);
-  }, [onCancel, novel]);
+
 
   const insertSpecialText = useCallback((text: string, selectText?: string, replaceText?: string) => {
     const textArea = textAreaRef.current;

@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { setFontSize, setWordCountDisplay, setLineNumbers } from '../../features/settings/settingsSlice';
+import { setFontSize, setWordCountDisplay } from '../../features/settings/settingsSlice';
 import { toggleTheme } from '../../features/theme/themeSlice';
 import { useGoogleDriveGIS } from '../../hooks/useGoogleDriveGIS';
 

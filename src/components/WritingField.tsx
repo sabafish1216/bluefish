@@ -9,13 +9,12 @@ import {
   Chip
 } from '@mui/material';
 import {
-  Save as SaveIcon,
-  Cancel as CancelIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
-import { Novel, updateNovel } from '../features/novels/novelsSlice';
+import { Novel } from '../features/novels/novelsSlice';
 import { addFolder } from '../features/folders/foldersSlice';
-import { addTag, deleteTag } from '../features/tags/tagsSlice';
+import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -110,18 +109,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
-  const handleCancel = useCallback(() => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      setTitle(novel.title);
-      setBody(novel.body);
-      setSelectedTags(novel.tags);
-      setSelectedFolderId(novel.folderId);
-    }
-    // キャンセル時もpendingTagsをクリア
-    setPendingTags([]);
-  }, [onCancel, novel]);
+
 
   // 特殊テキスト挿入関数
   const insertSpecialText = useCallback((text: string, selectText?: string, replaceText?: string) => {
