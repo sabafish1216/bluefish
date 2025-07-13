@@ -5,7 +5,8 @@ import {
   TextField,
   Button,
   Typography,
-  Paper
+  Paper,
+  Chip
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -17,6 +18,7 @@ import { addFolder } from '../features/folders/foldersSlice';
 import { addTag, deleteTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
+import { useAutoSave } from '../hooks/useAutoSave';
 
 interface WritingFieldProps {
   novel: Novel;
@@ -39,6 +41,9 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
+  // 自動保存フック
+  const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
+
   useEffect(() => {
     setTitle(novel.title);
     setBody(novel.body);
@@ -46,15 +51,48 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     setSelectedFolderId(novel.folderId);
   }, [novel]);
 
-  const handleSave = useCallback(() => {
-    if (!title.trim()) {
-      alert('タイトルを入力してください');
-      return;
-    }
+  // タイトル変更時の自動保存
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    debouncedSave({ title: newTitle });
+  }, [debouncedSave]);
 
+  // 本文変更時の自動保存
+  const handleBodyChange = useCallback((newBody: string) => {
+    console.log('本文変更検知:', newBody.length, '文字');
+    setBody(newBody);
+    debouncedSave({ body: newBody });
+  }, [debouncedSave]);
+
+  // タグ変更時の自動保存
+  const handleTagsChange = useCallback((newTagNames: string[]) => {
+    // 利用可能なすべてのタグ名を取得
+    const allAvailableTagNames = tags.map(t => t.name);
+    
+    // 新規作成されたタグをpendingTagsに追加
+    const newPendingTags = newTagNames.filter(name => 
+      !allAvailableTagNames.includes(name) && !pendingTags.includes(name)
+    );
+    
+    // 削除されたpendingTagsを処理
+    const removedPendingTags = pendingTags.filter(name => 
+      !newTagNames.includes(name)
+    );
+    
+    // pendingTagsを更新
+    setPendingTags(prev => [...prev.filter(t => !removedPendingTags.includes(t)), ...newPendingTags]);
+    
+    // 既存タグのIDリストを更新（利用可能なタグから選択されたもの）
+    const existingTagIds = newTagNames
+      .filter(name => allAvailableTagNames.includes(name))
+      .map(name => tags.find(t => t.name === name)?.id)
+      .filter(Boolean) as string[];
+    
+    setSelectedTags(existingTagIds);
+    
     // 新規作成されたタグをReduxに保存し、IDを取得
     const newTagIds: string[] = [];
-    pendingTags.forEach(tagName => {
+    newPendingTags.forEach(tagName => {
       const newTag = {
         id: Math.random().toString(36).slice(2),
         name: tagName.trim()
@@ -63,37 +101,14 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
       newTagIds.push(newTag.id);
     });
 
-    const updatedNovel = {
-      ...novel,
-      title: title.trim(),
-      body,
-      tags: [...selectedTags, ...newTagIds], // 既存タグID + 新規タグID
-      folderId: selectedFolderId,
-      updatedAt: new Date().toISOString()
-    };
-    
-    if (onSave) {
-      onSave(updatedNovel);
-    } else {
-      dispatch(updateNovel(updatedNovel));
-    }
-    
-    // 保存後はpendingTagsをクリア
-    setPendingTags([]);
+    debouncedSave({ tags: [...existingTagIds, ...newTagIds] });
+  }, [tags, pendingTags, dispatch, debouncedSave]);
 
-    // 保存完了後に0件のタグを削除
-    setTimeout(() => {
-      const updatedNovels = novels.map(n => n.id === novel.id ? updatedNovel : n);
-      const tagsToDelete = tags.filter(tag => {
-        const count = updatedNovels.filter(novel => novel.tags.includes(tag.id)).length;
-        return count === 0;
-      });
-      
-      tagsToDelete.forEach(tag => {
-        dispatch(deleteTag(tag.id));
-      });
-    }, 0);
-  }, [title, body, selectedTags, selectedFolderId, pendingTags, novel, onSave, dispatch, novels, tags]);
+  // フォルダ変更時の自動保存
+  const handleFolderChange = useCallback((newFolderId: string) => {
+    setSelectedFolderId(newFolderId);
+    debouncedSave({ folderId: newFolderId });
+  }, [debouncedSave]);
 
   const handleCancel = useCallback(() => {
     if (onCancel) {
@@ -127,6 +142,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     // カーソル位置にテキストを挿入
     const newText = currentText.substring(0, start) + finalText + currentText.substring(end);
     setBody(newText);
+    debouncedSave({ body: newText });
 
     // テキストエリアにフォーカスを戻す
     setTimeout(() => {
@@ -143,7 +159,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
         textArea.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
-  }, [body]);
+  }, [body, debouncedSave]);
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   
@@ -169,41 +185,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     }
   };
 
-  // 行番号の生成
-  const generateLineNumbers = () => {
-    if (!settings.lineNumbers) return null;
-    const lines = body.split('\n');
-    return (
-      <Box
-        sx={(theme) => ({
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 40,
-          backgroundColor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-          borderRight: '1px solid #ccc',
-          overflow: 'hidden',
-          fontFamily: 'monospace',
-          fontSize: getFontSize() - 2,
-          color: 'text.secondary',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          padding: '16px 8px',
-          boxSizing: 'border-box',
-          lineHeight: 1.6,
-        })}
-      >
-        {lines.map((_, index) => (
-          <Box key={index} sx={{ height: '1.6em' }}>
-            {index + 1}
-          </Box>
-        ))}
-      </Box>
-    );
-  };
-
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
       <Paper sx={{ p: 3, mb: 3, elevation: 2 }}>
@@ -211,13 +192,32 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
           <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
             作品情報
           </Typography>
+          {/* 保存状態表示 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isSaving && (
+              <Chip 
+                label="保存中..." 
+                size="small" 
+                color="info" 
+                variant="outlined"
+              />
+            )}
+            {lastSaved && !isSaving && (
+              <Chip 
+                label={`保存済み ${lastSaved.toLocaleTimeString()}`} 
+                size="small" 
+                color="success" 
+                variant="outlined"
+              />
+            )}
+          </Box>
         </Box>
 
         <TextField
           fullWidth
           label="タイトル"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           sx={{ mb: 3 }}
           required
         />
@@ -227,14 +227,14 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             <FolderSelector
               value={selectedFolderId}
               options={folders}
-              onChange={setSelectedFolderId}
+              onChange={handleFolderChange}
               onCreate={(name) => {
                 const newFolder = {
                   id: Math.random().toString(36).slice(2),
                   name: name.trim()
                 };
                 dispatch(addFolder(newFolder));
-                setSelectedFolderId(newFolder.id);
+                handleFolderChange(newFolder.id);
               }}
             />
           </Box>
@@ -243,31 +243,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
               value={displayTagNames}
               options={tags.map(t => t.name)}
               tagCounts={tagCounts}
-              onChange={(newTagNames) => {
-                // 利用可能なすべてのタグ名を取得
-                const allAvailableTagNames = tags.map(t => t.name);
-                
-                // 新規作成されたタグをpendingTagsに追加
-                const newPendingTags = newTagNames.filter(name => 
-                  !allAvailableTagNames.includes(name) && !pendingTags.includes(name)
-                );
-                
-                // 削除されたpendingTagsを処理
-                const removedPendingTags = pendingTags.filter(name => 
-                  !newTagNames.includes(name)
-                );
-                
-                // pendingTagsを更新
-                setPendingTags(prev => [...prev.filter(t => !removedPendingTags.includes(t)), ...newPendingTags]);
-                
-                // 既存タグのIDリストを更新（利用可能なタグから選択されたもの）
-                const existingTagIds = newTagNames
-                  .filter(name => allAvailableTagNames.includes(name))
-                  .map(name => tags.find(t => t.name === name)?.id)
-                  .filter(Boolean) as string[];
-                
-                setSelectedTags(existingTagIds);
-              }}
+              onChange={handleTagsChange}
               onCreate={(tag) => {
                 // 新規作成はonChangeで処理されるので、ここでは何もしない
               }}
@@ -280,17 +256,17 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             variant="contained"
             size="large"
             startIcon={<SaveIcon />}
-            onClick={handleSave}
+            onClick={() => saveImmediately({
+              title,
+              body,
+              tags: [...selectedTags, ...pendingTags.map(name => {
+                const existingTag = tags.find(t => t.name === name);
+                return existingTag ? existingTag.id : name;
+              })],
+              folderId: selectedFolderId
+            })}
           >
             保存
-          </Button>
-          <Button
-            variant="outlined"
-            size="large"
-            startIcon={<CancelIcon />}
-            onClick={handleCancel}
-          >
-            キャンセル
           </Button>
         </Box>
       </Paper>
@@ -339,11 +315,10 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
               flexDirection: 'column',
             }}
           >
-            {generateLineNumbers()}
             <textarea
               ref={textAreaRef}
               value={body}
-              onChange={e => setBody(e.target.value)}
+              onChange={e => handleBodyChange(e.target.value)}
               placeholder="ここに本文を入力してください..."
               style={{
                 width: '100%',
@@ -358,7 +333,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 border: '1px solid #ccc',
                 borderRadius: 8,
                 padding: 16,
-                paddingLeft: settings.lineNumbers ? 56 : 16,
                 boxSizing: 'border-box',
                 background: 'inherit',
                 color: 'inherit',

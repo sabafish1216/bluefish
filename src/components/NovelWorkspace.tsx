@@ -16,7 +16,8 @@ import {
   IconButton,
   AppBar,
   Toolbar,
-  useTheme
+  useTheme,
+  Paper
 } from '@mui/material';
 import {
   Book as BookIcon,
@@ -180,7 +181,7 @@ const NovelWorkspace: React.FC = () => {
     return (
       <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* モバイルヘッダー */}
-        <AppBar position="static" elevation={1} sx={{ bgcolor: 'white', color: 'text.primary' }}>
+        <AppBar position="static" elevation={1} sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
           <Toolbar>
             <IconButton
               edge="start"
@@ -216,20 +217,115 @@ const NovelWorkspace: React.FC = () => {
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
                 height: '100%',
                 p: 3,
-                textAlign: 'center'
               }}
             >
-              <BookIcon sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-              <Typography variant="h5" color="text.secondary" gutterBottom sx={{ fontWeight: 'bold' }}>
-                執筆を開始
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 300 }}>
-                メニューから作品を選択するか、新しい作品を作成してください
-              </Typography>
+              {/* ヘッダー部分 */}
+              <Box sx={{ textAlign: 'center', mb: 4, mt: 2 }}>
+                <img
+                  src={getIconSrc()}
+                  alt="BlueFish Icon"
+                  style={{ width: 80, height: 80, marginBottom: 16 }}
+                />
+                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
+                  BlueFish
+                </Typography>
+                <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
+                  小説執筆アプリ
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 300, mx: 'auto' }}>
+                  アイデアを形に、ストーリーを紡ぐ
+                </Typography>
+              </Box>
+
+              {/* 統計カード */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 4 }}>
+                <Paper sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  elevation: 2
+                }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
+                    {novels.length}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    作品数
+                  </Typography>
+                </Paper>
+                <Paper sx={{ 
+                  p: 2, 
+                  textAlign: 'center', 
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  elevation: 2
+                }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'secondary.main' }}>
+                    {novels.reduce((total, novel) => total + novel.body.length, 0).toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    総文字数
+                  </Typography>
+                </Paper>
+              </Box>
+
+              {/* 機能説明 */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center', color: 'text.primary' }}>
+                  主な機能
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <BookIcon sx={{ fontSize: 24, color: 'primary.main' }} />
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      複数作品の管理と整理
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <FolderIcon sx={{ fontSize: 24, color: 'secondary.main' }} />
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      フォルダとタグによる分類
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <AnalyticsIcon sx={{ fontSize: 24, color: 'info.main' }} />
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      執筆統計と分析
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* アクションボタン */}
+              <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<AddIcon />}
+                  onClick={handleNewNovel}
+                  sx={{
+                    fontWeight: 'bold',
+                    py: 1.5,
+                  }}
+                >
+                  新しい作品を作成
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  startIcon={<MenuIcon />}
+                  onClick={() => setMobileDrawerOpen(true)}
+                  sx={{
+                    fontWeight: 'bold',
+                  }}
+                >
+                  作品一覧を開く
+                </Button>
+              </Box>
             </Box>
           )}
         </Box>

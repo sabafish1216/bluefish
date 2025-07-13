@@ -112,6 +112,10 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
           borderRight: '1px solid rgba(0, 0, 0, 0.12)',
           display: 'flex',
           flexDirection: 'column',
+          borderTopLeftRadius: 0,
+          borderBottomLeftRadius: 0,
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
         },
       }}
     >
@@ -154,20 +158,14 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
       >
         <Tab 
           icon={<BookIcon />} 
-          label="すべて"
-          iconPosition="start"
           sx={{ minHeight: 48 }}
         />
         <Tab 
           icon={<FolderIcon />} 
-          label="フォルダ"
-          iconPosition="start"
           sx={{ minHeight: 48 }}
         />
         <Tab 
           icon={<TagIcon />} 
-          label="タグ"
-          iconPosition="start"
           sx={{ minHeight: 48 }}
         />
       </Tabs>

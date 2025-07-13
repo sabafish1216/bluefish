@@ -22,4 +22,4 @@ const themeSlice = createSlice({
 });
 
 export const { toggleTheme, setTheme } = themeSlice.actions;
-export default themeSlice.reducer; 
+export default themeSlice.reducer;

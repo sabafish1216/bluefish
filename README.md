@@ -42,26 +42,69 @@ npm run build
 - **UI**: Material-UI (MUI)
 - **ビルド**: Create React App
 
-## プロジェクト構造
+## プロジェクト構造（2024年7月現在）
 
 ```
-src/
-├── components/          # Reactコンポーネント
-│   ├── common/         # 共通コンポーネント
-│   ├── novel/          # 小説関連コンポーネント
-│   └── mobile/         # モバイル用コンポーネント
-├── features/           # Reduxスライス
-├── hooks/              # カスタムフック
-├── pages/              # ページコンポーネント
-├── store/              # Reduxストア設定
-├── types/              # TypeScript型定義
-└── utils/              # ユーティリティ関数
+novel-writer/
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── AnalyticsPage.tsx
+│   │   ├── MobileWritingField.tsx
+│   │   ├── WritingField.tsx
+│   │   ├── NovelWorkspace.tsx
+│   │   ├── NovelListItem.tsx
+│   │   ├── FolderSelector.tsx
+│   │   ├── TagSelector.tsx
+│   │   └── common/
+│   │       ├── SettingsDialog.tsx
+│   │       ├── MobileDrawer.tsx
+│   │       ├── SpecialTextButtons.tsx
+│   │       ├── ExpandableSection.tsx
+│   │       ├── ActionButtons.tsx
+│   │       ├── TabPanel.tsx
+│   │       ├── EmptyState.tsx
+│   │       └── index.ts
+│   ├── constants/
+│   │   ├── analytics.ts
+│   │   ├── drawer.ts
+│   │   ├── index.ts
+│   │   └── specialText.ts
+│   ├── features/
+│   │   ├── googleDrive/
+│   │   ├── settings/
+│   │   ├── theme/
+│   │   ├── folders/
+│   │   ├── novels/
+│   │   └── tags/
+│   ├── hooks/
+│   │   ├── useAnalyticsData.ts
+│   │   ├── useGoogleDriveGIS.ts
+│   │   ├── useResponsive.ts
+│   │   ├── useNovelData.ts
+│   │   ├── useExpansionState.ts
+│   │   ├── useDrawerResize.ts
+│   │   └── index.ts
+│   ├── pages/
+│   │   └── NovelListPage.tsx
+│   ├── store/
+│   │   └── index.ts
+│   ├── types/
+│   │   ├── index.ts
+│   │   ├── novel.ts
+│   │   └── analytics.ts
+│   ├── App.tsx
+│   ├── App.css
+│   ├── App.test.tsx
+│   ├── index.tsx
+│   ├── index.css
+│   ├── logo.svg
+│   ├── react-app-env.d.ts
+│   ├── reportWebVitals.ts
+│   └── setupTests.ts
+└── ...
 ```
 
 ## ライセンス
 
 MIT License
-
-## 開発者
-
-BlueFish開発チーム

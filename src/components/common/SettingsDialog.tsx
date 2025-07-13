@@ -52,9 +52,6 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
   const handleWordCountDisplayChange = (checked: boolean) => {
     dispatch(setWordCountDisplay(checked));
   };
-  const handleLineNumbersChange = (checked: boolean) => {
-    dispatch(setLineNumbers(checked));
-  };
   const handleThemeToggle = () => {
     dispatch(toggleTheme());
   };
@@ -126,11 +123,6 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
             <FormControlLabel
               control={<Switch checked={settings.wordCountDisplay} onChange={e => handleWordCountDisplayChange(e.target.checked)} />}
               label="文字数表示"
-              sx={{ mb: 1 }}
-            />
-            <FormControlLabel
-              control={<Switch checked={settings.lineNumbers} onChange={e => handleLineNumbersChange(e.target.checked)} />}
-              label="行番号表示"
             />
           </Box>
         </FormControl>
