@@ -270,9 +270,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       handleBodyChange(e.target.value);
       setTimeout(() => {
         if (textAreaRef.current) {
-          const selectionEnd = textAreaRef.current.selectionEnd;
-          textAreaRef.current.setSelectionRange(selectionEnd, selectionEnd);
-          textAreaRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
+          textAreaRef.current.scrollTop = textAreaRef.current.scrollHeight;
         }
       }, 0);
     };
