@@ -10,10 +10,10 @@ import {
 } from '@mui/material';
 import {
   Save as SaveIcon,
-  Cancel as CancelIcon,
   Add as AddIcon,
   Title as TitleIcon,
-  FormatSize as FormatSizeIcon
+  FormatSize as FormatSizeIcon,
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -266,22 +266,32 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   );
 
   if (editorMode) {
-    // --- エディタモード（フルスクリーンUI） ---
+    const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      handleBodyChange(e.target.value);
+      setTimeout(() => {
+        if (textAreaRef.current) {
+          const selectionEnd = textAreaRef.current.selectionEnd;
+          textAreaRef.current.setSelectionRange(selectionEnd, selectionEnd);
+          textAreaRef.current.scrollIntoView({ block: 'end', behavior: 'smooth' });
+        }
+      }, 0);
+    };
     return (
       <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
         {/* ヘッダー */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider' }}>
-          <Button onClick={() => setEditorMode(false)} startIcon={<CancelIcon />} sx={{ minWidth: 0, p: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
+          <Button onClick={() => setEditorMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1 }}>
             戻る
           </Button>
+          {settings.wordCountDisplay && (
+            <Typography variant="caption" sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: 'text.secondary', fontWeight: 'bold', fontSize: '1rem', pointerEvents: 'none' }}>
+              {body.length.toLocaleString()} / 300,000
+            </Typography>
+          )}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <IconButton onClick={() => insertSpecialText('[newpage]')} size="large"><AddIcon /></IconButton>
             <IconButton onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')} size="large"><TitleIcon /></IconButton>
             <IconButton onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')} size="large"><FormatSizeIcon /></IconButton>
-            <IconButton onClick={() => saveImmediately({ title, body, tags: [...selectedTags, ...pendingTags.map(name => {
-              const existingTag = tags.find(t => t.name === name);
-              return existingTag ? existingTag.id : name;
-            })], folderId: selectedFolderId })} size="large"><SaveIcon /></IconButton>
           </Box>
         </Box>
         {/* 本文エディタ */}
@@ -289,7 +299,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
           <textarea
             ref={textAreaRef}
             value={body}
-            onChange={e => handleBodyChange(e.target.value)}
+            onChange={handleEditorInput}
             autoFocus
             style={{
               width: '100%',
@@ -301,8 +311,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               fontFamily: 'monospace',
               fontSize: getFontSize(),
               lineHeight: 1.6,
-              border: '1px solid #ccc',
-              borderRadius: 8,
+              border: 'none', // 枠を消す
+              borderRadius: 0,
               padding: 12,
               boxSizing: 'border-box',
               background: 'inherit',
@@ -312,11 +322,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               display: 'block',
             }}
           />
-          {settings.wordCountDisplay && (
-            <Typography variant="caption" sx={{ textAlign: 'right', color: 'text.secondary', mt: 1 }}>
-              {body.length.toLocaleString()} / 300,000
-            </Typography>
-          )}
         </Box>
       </Box>
     );
