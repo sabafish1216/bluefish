@@ -6,10 +6,7 @@ import {
   Button,
   Typography,
   Paper,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  Chip
+  IconButton
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -24,7 +21,6 @@ import { addFolder } from '../features/folders/foldersSlice';
 import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
-import SettingsDialog from './common/SettingsDialog';
 import { useAutoSave } from '../hooks/useAutoSave';
 
 interface MobileWritingFieldProps {
@@ -52,13 +48,11 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [selectedTags, setSelectedTags] = useState<string[]>(novel.tags);
   const [pendingTags, setPendingTags] = useState<string[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showInfoForm, setShowInfoForm] = useState(false);
-  const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [editorMode, setEditorMode] = useState(false);
 
   // 自動保存フック
-  const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
+  const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
 
   useEffect(() => {
     setTitle(novel.title);
@@ -168,274 +162,174 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     }
   };
 
-  if (showInfoForm) {
+  // --- 作品情報カード ---
+  const renderInfoCard = () => (
+    <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+        作品情報
+      </Typography>
+      <TextField
+        fullWidth
+        label="タイトル"
+        value={title}
+        onChange={(e) => handleTitleChange(e.target.value)}
+        sx={{ mb: 2 }}
+        required
+      />
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          フォルダ
+        </Typography>
+        <FolderSelector
+          value={selectedFolderId}
+          options={folders}
+          onChange={handleFolderChange}
+          onCreate={(name) => {
+            const newFolder = {
+              id: Math.random().toString(36).slice(2),
+              name: name.trim()
+            };
+            dispatch(addFolder(newFolder));
+            handleFolderChange(newFolder.id);
+          }}
+        />
+      </Box>
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          タグ
+        </Typography>
+        <TagSelector
+          value={displayTagNames}
+          options={tags.map(t => t.name)}
+          tagCounts={tagCounts}
+          onChange={handleTagsChange}
+          onCreate={() => {}}
+        />
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+        <Button
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={() => {
+            saveImmediately({
+              title,
+              body,
+              tags: [...selectedTags, ...pendingTags.map(name => {
+                const existingTag = tags.find(t => t.name === name);
+                return existingTag ? existingTag.id : name;
+              })],
+              folderId: selectedFolderId
+            });
+          }}
+        >
+          保存
+        </Button>
+      </Box>
+    </Paper>
+  );
+
+  // --- 本文カード ---
+  const renderBodyCard = () => (
+    <Paper sx={{ p: 2, mb: 2, minHeight: 200, display: 'flex', flexDirection: 'column' }}>
+      <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+        本文
+      </Typography>
+      <textarea
+        ref={textAreaRef}
+        value={body}
+        readOnly
+        placeholder="ここに本文を入力してください..."
+        style={{
+          width: '100%',
+          minHeight: 120,
+          fontFamily: 'monospace',
+          fontSize: getFontSize(),
+          lineHeight: 1.6,
+          border: '1px solid #ccc',
+          borderRadius: 8,
+          padding: 12,
+          boxSizing: 'border-box',
+          background: 'inherit',
+          color: 'inherit',
+          outline: 'none',
+          resize: 'none',
+          cursor: 'pointer',
+        }}
+        onClick={() => setEditorMode(true)}
+      />
+      {settings.wordCountDisplay && (
+        <Typography variant="caption" sx={{ textAlign: 'right', color: 'text.secondary', mt: 1 }}>
+          {body.length.toLocaleString()} / 300,000
+        </Typography>
+      )}
+    </Paper>
+  );
+
+  if (editorMode) {
+    // --- エディタモード（フルスクリーンUI） ---
     return (
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* ヘッダー削除済み */}
-        {/* 作品情報フォーム */}
-        <Box sx={{ flexGrow: 1, p: 2, overflow: 'auto' }}>
-          <Paper sx={{ p: 3, mb: 2 }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
-              基本情報
-            </Typography>
-
-            <TextField
-              fullWidth
-              label="タイトル"
-              value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              sx={{ mb: 3 }}
-              required
-            />
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                フォルダ
-              </Typography>
-              <FolderSelector
-                value={selectedFolderId}
-                options={folders}
-                onChange={handleFolderChange}
-                onCreate={(name) => {
-                  const newFolder = {
-                    id: Math.random().toString(36).slice(2),
-                    name: name.trim()
-                  };
-                  dispatch(addFolder(newFolder));
-                  handleFolderChange(newFolder.id);
-                }}
-              />
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                タグ
-              </Typography>
-              <TagSelector
-                value={displayTagNames}
-                options={tags.map(t => t.name)}
-                tagCounts={tagCounts}
-                onChange={handleTagsChange}
-                onCreate={(tag) => {
-                  // 新規作成はonChangeで処理される
-                }}
-              />
-            </Box>
-          </Paper>
-
-          {/* 保存・キャンセルボタン */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<CancelIcon />}
-              onClick={() => setShowInfoForm(false)}
-            >
-              キャンセル
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<SaveIcon />}
-              onClick={() => {
-                saveImmediately({
-                  title,
-                  body,
-                  tags: [...selectedTags, ...pendingTags.map(name => {
-                    const existingTag = tags.find(t => t.name === name);
-                    return existingTag ? existingTag.id : name;
-                  })],
-                  folderId: selectedFolderId
-                });
-                setShowInfoForm(false);
-              }}
-            >
-              保存
-            </Button>
+      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
+        {/* ヘッダー */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider' }}>
+          <Button onClick={() => setEditorMode(false)} startIcon={<CancelIcon />} sx={{ minWidth: 0, p: 1 }}>
+            戻る
+          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton onClick={() => insertSpecialText('[newpage]')} size="large"><AddIcon /></IconButton>
+            <IconButton onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')} size="large"><TitleIcon /></IconButton>
+            <IconButton onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')} size="large"><FormatSizeIcon /></IconButton>
+            <IconButton onClick={() => saveImmediately({ title, body, tags: [...selectedTags, ...pendingTags.map(name => {
+              const existingTag = tags.find(t => t.name === name);
+              return existingTag ? existingTag.id : name;
+            })], folderId: selectedFolderId })} size="large"><SaveIcon /></IconButton>
           </Box>
         </Box>
-      </Box>
-    );
-  }
-
-  // SpeedDialのアクション定義
-  const speedDialActions = [
-    {
-      icon: <SaveIcon />,
-      name: '手動保存',
-      action: () => setShowInfoForm(true)
-    },
-    {
-      icon: <AddIcon />,
-      name: 'ページ追加',
-      action: () => insertSpecialText('[newpage]')
-    },
-    {
-      icon: <TitleIcon />,
-      name: '章タイトル',
-      action: () => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')
-    },
-    {
-      icon: <FormatSizeIcon />,
-      name: 'ルビ',
-      action: () => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')
-    }
-  ];
-
-  return (
-    <Box sx={{ 
-      height: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      overflow: 'hidden',
-      position: 'fixed',
-      top: 64, // ヘッダーの高さ分下げる
-      left: 0,
-      right: 0,
-      bottom: 0
-    }}>
-      {/* ヘッダー削除済み */}
-      {/* 本文エリア */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        display: 'flex', 
-        flexDirection: 'column', 
-        p: 2, 
-        overflow: 'hidden',
-        height: 'calc(100vh - 64px - 32px)', // ヘッダー高さ(64px) + パディング(32px)を考慮
-        maxHeight: 'calc(100vh - 64px - 32px)'
-      }}>
-        <Paper sx={{ 
-          flexGrow: 1, 
-          p: 2, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          minHeight: 0, 
-          overflow: 'hidden',
-          height: '100%',
-          maxHeight: '100%'
-        }}>
-          {/* 保存状態表示 */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-            {isSaving && (
-              <Chip 
-                label="保存中..." 
-                size="small" 
-                color="info" 
-                variant="outlined"
-              />
-            )}
-            {lastSaved && !isSaving && (
-              <Chip 
-                label={`保存済み ${lastSaved.toLocaleTimeString()}`} 
-                size="small" 
-                color="success" 
-                variant="outlined"
-              />
-            )}
-          </Box>
-
-          <Box sx={{ 
-            position: 'relative', 
-            flexGrow: 1, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            overflow: 'hidden',
-            height: settings.wordCountDisplay ? 'calc(100% - 60px)' : 'calc(100% - 40px)',
-            maxHeight: settings.wordCountDisplay ? 'calc(100% - 60px)' : 'calc(100% - 40px)'
-          }}>
-            <textarea
-              ref={textAreaRef}
-              value={body}
-              onChange={e => handleBodyChange(e.target.value)}
-              placeholder="ここに本文を入力してください..."
-              style={{
-                width: '100%',
-                height: '100%',
-                minHeight: 0,
-                maxHeight: '100%',
-                resize: 'none',
-                overflowY: 'auto',
-                fontFamily: 'monospace',
-                fontSize: getFontSize(),
-                lineHeight: 1.6,
-                border: '1px solid #ccc',
-                borderRadius: 8,
-                padding: 12,
-                boxSizing: 'border-box',
-                background: 'inherit',
-                color: 'inherit',
-                outline: 'none',
-                flex: 1,
-                display: 'block',
-              }}
-            />
-          </Box>
-
-          {/* 文字数表示 */}
+        {/* 本文エディタ */}
+        <Box sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
+          <textarea
+            ref={textAreaRef}
+            value={body}
+            onChange={e => handleBodyChange(e.target.value)}
+            autoFocus
+            style={{
+              width: '100%',
+              height: '100%',
+              minHeight: 0,
+              maxHeight: '100%',
+              resize: 'none',
+              overflowY: 'auto',
+              fontFamily: 'monospace',
+              fontSize: getFontSize(),
+              lineHeight: 1.6,
+              border: '1px solid #ccc',
+              borderRadius: 8,
+              padding: 12,
+              boxSizing: 'border-box',
+              background: 'inherit',
+              color: 'inherit',
+              outline: 'none',
+              flex: 1,
+              display: 'block',
+            }}
+          />
           {settings.wordCountDisplay && (
-            <Typography
-              variant="caption"
-              sx={{
-                textAlign: 'center',
-                color: 'text.secondary',
-                mt: 1,
-                fontSize: '0.75rem',
-                flexShrink: 0,
-                height: 20,
-                minHeight: 20,
-                maxHeight: 20,
-              }}
-            >
+            <Typography variant="caption" sx={{ textAlign: 'right', color: 'text.secondary', mt: 1 }}>
               {body.length.toLocaleString()} / 300,000
             </Typography>
           )}
-        </Paper>
+        </Box>
       </Box>
-
-      {/* SpeedDial ボタンパレット */}
-      <SpeedDial
-        ariaLabel="アクションメニュー"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          '& .MuiFab-root': {
-            borderRadius: '50%',
-            width: 56,
-            height: 56,
-          },
-          '& .MuiSpeedDialAction-fab': {
-            borderRadius: '50%',
-            width: 40,
-            height: 40,
-          }
-        }}
-        icon={<SpeedDialIcon />}
-        open={speedDialOpen}
-        onOpen={() => setSpeedDialOpen(true)}
-        onClose={() => setSpeedDialOpen(false)}
-      >
-        {speedDialActions.map((action) => (
-          <SpeedDialAction
-            key={action.name}
-            icon={action.icon}
-            tooltipTitle={action.name}
-            onClick={() => {
-              action.action();
-              setSpeedDialOpen(false);
-            }}
-          />
-        ))}
-      </SpeedDial>
-
-      {/* 設定ダイアログ */}
-      <SettingsDialog
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
-    </Box>
-  );
+    );
+  } else {
+    // --- 通常画面 ---
+    return (
+      <Box sx={{ height: '100vh', overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
+        {renderInfoCard()}
+        {renderBodyCard()}
+        {/* SpeedDialは一旦非表示 */}
+      </Box>
+    );
+  }
 };
 
 export default MobileWritingField; 
