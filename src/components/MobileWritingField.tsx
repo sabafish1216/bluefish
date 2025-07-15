@@ -50,6 +50,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [editorMode, setEditorMode] = useState(false);
+  const [editorHeight, setEditorHeight] = useState('100%');
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -301,7 +302,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             autoFocus
             style={{
               width: '100%',
-              height: '100%',
+              height: editorHeight,
+              transition: 'height 0.2s',
               minHeight: 0,
               maxHeight: '100%',
               resize: 'none',
@@ -309,7 +311,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               fontFamily: 'monospace',
               fontSize: getFontSize(),
               lineHeight: 1.6,
-              border: 'none', // 枠を消す
+              border: 'none',
               borderRadius: 0,
               padding: 12,
               boxSizing: 'border-box',
@@ -319,6 +321,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               flex: 1,
               display: 'block',
             }}
+            onFocus={() => setEditorHeight('40vh')}
+            onBlur={() => setEditorHeight('100%')}
           />
         </Box>
       </Box>
