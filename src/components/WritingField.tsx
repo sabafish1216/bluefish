@@ -345,9 +345,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                   textAlign: 'right',
                   paddingRight: 20,
                   paddingLeft: 20,
-                  // 縦書き時の追加設定
-                  transform: 'rotate(180deg)',
-                  transformOrigin: 'center center',
                 } : {
                   writingMode: 'horizontal-tb',
                   textOrientation: 'mixed',
