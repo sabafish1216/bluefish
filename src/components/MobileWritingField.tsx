@@ -310,8 +310,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               fontFamily: 'monospace',
               fontSize: getFontSize(),
               lineHeight: 1.6,
-              border: '3px solid red', // わかりやすい赤い枠線
-              borderRadius: 8,
+              border: 'none',
+              borderRadius: 0,
               padding: 12,
               boxSizing: 'border-box',
               background: 'inherit',
@@ -319,7 +319,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               outline: 'none',
               display: 'block',
             }}
-            onFocus={() => setEditorHeight('25vh')} // 画面の1/4に変更
+            onFocus={() => setEditorHeight('40vh')} // 40vhに戻す
             onBlur={() => setEditorHeight('100%')}
           />
         </Box>
