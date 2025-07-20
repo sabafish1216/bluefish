@@ -328,7 +328,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   } else {
     // --- 通常画面 ---
     return (
-      <Box sx={{ height: '100vh', overflow: 'auto', p: 2, bgcolor: 'background.default' }}>
+      <Box sx={{ height: '100vh', overflow: 'auto', p: 2}}>
         {renderInfoCard()}
         {renderBodyCard()}
         {/* SpeedDialは一旦非表示 */}
