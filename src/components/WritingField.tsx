@@ -343,6 +343,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                   textOrientation: 'upright',
                   direction: 'rtl',
                   textAlign: 'right',
+                  verticalAlign: 'top',
                   paddingRight: 20,
                   paddingLeft: 20,
                 } : {
