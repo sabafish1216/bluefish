@@ -140,6 +140,13 @@ const NovelWorkspace: React.FC = () => {
     setSelectedNovelId(null);
   }, []);
 
+  // 初期画面に戻る関数
+  const handleBackToHome = useCallback(() => {
+    setSelectedNovelId(null);
+    setShowAnalytics(false);
+    setMobileDrawerOpen(false);
+  }, []);
+
   const selectedNovel = selectedNovelId ? novels.find(n => n.id === selectedNovelId) : null;
 
   // アクションボタンの設定
@@ -191,7 +198,18 @@ const NovelWorkspace: React.FC = () => {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" sx={{ flexGrow: 1, fontSize: '1.1rem' }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                flexGrow: 1, 
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                '&:hover': {
+                  opacity: 0.8
+                }
+              }}
+              onClick={handleBackToHome}
+            >
               BlueFish
             </Typography>
             <IconButton
@@ -228,7 +246,19 @@ const NovelWorkspace: React.FC = () => {
                   alt="BlueFish Icon"
                   style={{ width: 80, height: 80, marginBottom: 16 }}
                 />
-                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2, color: 'text.primary' }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 'bold', 
+                    mb: 2, 
+                    color: 'text.primary',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      opacity: 0.8
+                    }
+                  }}
+                  onClick={handleBackToHome}
+                >
                   BlueFish
                 </Typography>
                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>
@@ -343,6 +373,7 @@ const NovelWorkspace: React.FC = () => {
           onNewFolder={() => setFolderModalOpen(true)}
           onAnalyticsToggle={handleAnalyticsToggle}
           onSettingsOpen={() => setSettingsModalOpen(true)}
+          onBackToHome={handleBackToHome}
         />
 
         {/* フォルダ作成モーダル */}

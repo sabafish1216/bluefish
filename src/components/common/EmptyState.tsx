@@ -1,7 +1,23 @@
+/**
+ * 空表示コンポーネント
+ * @author sabafish1028
+ * @version 0.2.0
+ * @since 2025-07-20
+ * @updated 2025-07-20
+ * @description 何もコンテンツがない場合に表示するアイコン・テキストのコンポーネント
+ */
+
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { SvgIconComponent } from '@mui/icons-material';
 
+/**
+ * 空表示コンポーネントの型
+ * @param {SvgIconComponent} icon - アイコン
+ * @param {string} title - タイトル
+ * @param {string} description - 説明
+ * @param {string} height - 高さ
+ */
 interface EmptyStateProps {
   icon: SvgIconComponent;
   title: string;

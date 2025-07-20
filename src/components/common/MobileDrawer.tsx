@@ -42,6 +42,7 @@ interface MobileDrawerProps {
   onNewFolder: () => void;
   onAnalyticsToggle: () => void;
   onSettingsOpen: () => void;
+  onBackToHome: () => void;
 }
 
 const MobileDrawer: React.FC<MobileDrawerProps> = ({
@@ -55,7 +56,8 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onNewNovel,
   onNewFolder,
   onAnalyticsToggle,
-  onSettingsOpen
+  onSettingsOpen,
+  onBackToHome
 }) => {
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
@@ -135,7 +137,20 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
             alt="BlueFish Icon"
             style={{ width: 24, height: 24 }}
           />
-          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.8
+              }
+            }}
+            onClick={() => {
+              onBackToHome();
+              onClose();
+            }}
+          >
             BlueFish
           </Typography>
         </Box>
