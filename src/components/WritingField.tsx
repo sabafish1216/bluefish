@@ -339,8 +339,8 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 outline: 'none',
                 // 縦書きスタイル
                 writingMode: isVerticalWriting ? 'vertical-rl' : 'horizontal-tb',
-                textOrientation: isVerticalWriting ? 'mixed' : 'mixed',
-                direction: isVerticalWriting ? 'ltr' : 'ltr',
+                textOrientation: isVerticalWriting ? 'upright' : 'mixed',
+                direction: isVerticalWriting ? 'rtl' : 'ltr',
                 // 縦書き時の追加スタイル
                 ...(isVerticalWriting && {
                   textAlign: 'right',
