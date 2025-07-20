@@ -313,6 +313,11 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
+              // 縦書き時の上寄せ
+              ...(isVerticalWriting && {
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+              })
             }}
           >
             <textarea
@@ -343,7 +348,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                   textOrientation: 'upright',
                   direction: 'rtl',
                   textAlign: 'right',
-                  verticalAlign: 'top',
                   paddingRight: 20,
                   paddingLeft: 20,
                 } : {
