@@ -346,7 +346,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 ...(isVerticalWriting ? {
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright',
-                  direction: 'rtl',
+                  direction: 'ltr',
                   textAlign: 'left',
                   paddingRight: 20,
                   paddingLeft: 20,
