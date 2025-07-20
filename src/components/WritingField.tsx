@@ -9,7 +9,9 @@ import {
   Chip
 } from '@mui/material';
 import {
-  Save as SaveIcon
+  Save as SaveIcon,
+  FormatTextdirectionLToR as HorizontalIcon,
+  FormatTextdirectionRToL as VerticalIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -38,6 +40,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [selectedTags, setSelectedTags] = useState<string[]>(novel.tags);
   const [pendingTags, setPendingTags] = useState<string[]>([]); // 新規作成されたタグ（まだ保存されていない）
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
+  const [isVerticalWriting, setIsVerticalWriting] = useState(false); // 縦書き状態
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // 自動保存フック
@@ -268,6 +271,15 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             <Button
               size="small"
               variant="outlined"
+              startIcon={isVerticalWriting ? <HorizontalIcon /> : <VerticalIcon />}
+              onClick={() => setIsVerticalWriting(!isVerticalWriting)}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              {isVerticalWriting ? '横書き' : '縦書き'}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
               onClick={() => insertSpecialText('[newpage]')}
               sx={{ fontSize: '0.75rem' }}
             >
@@ -325,6 +337,16 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 background: 'inherit',
                 color: 'inherit',
                 outline: 'none',
+                // 縦書きスタイル
+                writingMode: isVerticalWriting ? 'vertical-rl' : 'horizontal-tb',
+                textOrientation: isVerticalWriting ? 'mixed' : 'mixed',
+                direction: isVerticalWriting ? 'rtl' : 'ltr',
+                // 縦書き時の追加スタイル
+                ...(isVerticalWriting && {
+                  textAlign: 'right',
+                  paddingRight: 20,
+                  paddingLeft: 20,
+                })
               }}
             />
           </Box>
