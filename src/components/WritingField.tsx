@@ -338,14 +338,20 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 color: 'inherit',
                 outline: 'none',
                 // 縦書きスタイル
-                writingMode: isVerticalWriting ? 'vertical-rl' : 'horizontal-tb',
-                textOrientation: isVerticalWriting ? 'upright' : 'mixed',
-                direction: isVerticalWriting ? 'rtl' : 'ltr',
-                // 縦書き時の追加スタイル
-                ...(isVerticalWriting && {
+                ...(isVerticalWriting ? {
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright',
+                  direction: 'rtl',
                   textAlign: 'right',
                   paddingRight: 20,
                   paddingLeft: 20,
+                  // 縦書き時の追加設定
+                  transform: 'rotate(180deg)',
+                  transformOrigin: 'center center',
+                } : {
+                  writingMode: 'horizontal-tb',
+                  textOrientation: 'mixed',
+                  direction: 'ltr',
                 })
               }}
             />
