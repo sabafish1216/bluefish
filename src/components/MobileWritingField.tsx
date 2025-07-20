@@ -305,7 +305,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               height: editorHeight,
               transition: 'height 0.2s',
               minHeight: 0,
-              maxHeight: '100%',
               resize: 'none',
               overflowY: 'auto',
               fontFamily: 'monospace',
@@ -318,7 +317,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               background: 'inherit',
               color: 'inherit',
               outline: 'none',
-              flex: 1,
               display: 'block',
             }}
             onFocus={() => setEditorHeight('25vh')} // 画面の1/4に変更
