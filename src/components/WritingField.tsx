@@ -281,6 +281,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             本文
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
+            {/* 機能ボタン群 */}
             <Button
               size="small"
               variant="outlined"
@@ -322,6 +323,17 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
               sx={{ fontSize: '0.75rem' }}
             >
               プレビュー
+            </Button>
+            {/* 拡大/縮小ボタン */}
+            <Button
+              size="small"
+              variant="outlined"
+              color="info"
+              startIcon={expanded ? <ZoomOutIcon /> : <ZoomInIcon />}
+              onClick={() => setExpanded(e => !e)}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              {expanded ? '縮小' : '拡大'}
             </Button>
           </Box>
         </Box>
@@ -435,17 +447,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             </Typography>
           )}
         </Box>
-        {/* 拡大/縮小ボタン */}
-        <Button
-          variant="contained"
-          color="info"
-          size="small"
-          startIcon={expanded ? <ZoomOutIcon /> : <ZoomInIcon />}
-          onClick={() => setExpanded(e => !e)}
-          sx={{ position: 'absolute', right: 16, bottom: 16, zIndex: 10 }}
-        >
-          {expanded ? '縮小' : '拡大'}
-        </Button>
       </Paper>
     </Box>
   );
