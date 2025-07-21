@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Box,
@@ -58,7 +58,8 @@ const NovelWorkspace: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  
+  const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
+
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
   const tags = useSelector((state: RootState) => state.tags.tags);
@@ -76,6 +77,29 @@ const NovelWorkspace: React.FC = () => {
 
   const { expandedFolders, expandedTags, toggleFolderExpansion, toggleTagExpansion } = useExpansionState();
   const { novelsByFolder, novelsByTag } = useNovelData(novels, folders, tags);
+
+  useEffect(() => {
+    if (isMobile) {
+      const setHeight = () => {
+        if (window.visualViewport) {
+          setDynamicHeight(window.visualViewport.height);
+        } else {
+          setDynamicHeight(window.innerHeight);
+        }
+      };
+      setHeight();
+      window.addEventListener('resize', setHeight);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setHeight);
+      }
+      return () => {
+        window.removeEventListener('resize', setHeight);
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', setHeight);
+        }
+      };
+    }
+  }, [isMobile]);
 
   const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -186,7 +210,7 @@ const NovelWorkspace: React.FC = () => {
   // モバイル用のレイアウト
   if (isMobile) {
     return (
-      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box style={dynamicHeight ? { height: dynamicHeight, overflow: 'hidden' } : {}}>
         {/* モバイルヘッダー */}
         <AppBar position="static" elevation={1} sx={{ bgcolor: 'background.paper', color: 'text.primary' }}>
           <Toolbar>
@@ -222,7 +246,7 @@ const NovelWorkspace: React.FC = () => {
         </AppBar>
 
         {/* モバイルコンテンツ */}
-        <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <Box sx={{ flexGrow: 1, height: dynamicHeight ? `calc(${dynamicHeight}px - 56px)` : undefined, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {showAnalytics ? (
             <AnalyticsPage />
           ) : selectedNovel ? (
@@ -237,6 +261,9 @@ const NovelWorkspace: React.FC = () => {
                 flexDirection: 'column',
                 height: '100%',
                 p: 3,
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
               }}
             >
               {/* ヘッダー部分 */}
