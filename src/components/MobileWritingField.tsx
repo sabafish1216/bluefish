@@ -345,7 +345,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               fontFamily: 'monospace',
               fontSize: getFontSize(),
               lineHeight: 1.6,
-              border: '2px solid red', // デバッグ用赤枠線
+              border: 'none', // デバッグ用赤枠線を撤廃
               borderRadius: 0,
               padding: 12,
               boxSizing: 'border-box',
