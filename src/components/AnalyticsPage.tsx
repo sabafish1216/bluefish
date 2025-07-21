@@ -138,23 +138,24 @@ const AnalyticsPage: React.FC = () => {
 
         {/* 作品別ランキング */}
         <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
-            <TrendingUpIcon sx={{ mr: 1 }} />
-            作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
-          </Typography>
-          <FormControl size="small" sx={{ position: 'absolute', top: 16, right: 16, minWidth: 120 }}>
-            <InputLabel id="ranking-select-label">部門</InputLabel>
-            <Select
-              labelId="ranking-select-label"
-              value={rankingTab}
-              label="部門"
-              onChange={e => setRankingTab(Number(e.target.value))}
-            >
-              {rankingOptions.map(opt => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+              <TrendingUpIcon sx={{ mr: 1 }} />
+              作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
+            </Typography>
+            <FormControl size="small" variant="outlined" sx={{ minWidth: 120, backgroundColor: 'background.paper', borderRadius: 1, boxShadow: 0 }}>
+              <Select
+                value={rankingTab}
+                onChange={e => setRankingTab(Number(e.target.value))}
+                sx={{ fontWeight: 'bold', fontSize: '0.95rem', height: 36 }}
+                displayEmpty
+              >
+                {rankingOptions.map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           {/* 表彰台・リストのデータ切り替え（中身はそのまま） */}
           {(() => {
             let ranking = novelRanking;
