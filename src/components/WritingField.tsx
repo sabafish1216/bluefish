@@ -21,6 +21,7 @@ import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
 import { useAutoSave } from '../hooks/useAutoSave';
+import PreviewPage from './PreviewPage';
 
 interface WritingFieldProps {
   novel: Novel;
@@ -177,6 +178,10 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
       default: return 16;
     }
   };
+
+  if (previewMode) {
+    return <PreviewPage body={body} />;
+  }
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
