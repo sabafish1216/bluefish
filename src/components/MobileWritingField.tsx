@@ -334,11 +334,10 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             value={body}
             onChange={handleEditorInput}
             autoFocus
-            onFocus={() => setEditorHeight('45vh')} // 45vhに変更
-            onBlur={() => setEditorHeight('100%')}
+            // onFocus, onBlurでsetEditorHeightは不要
             style={{
               width: '100%',
-              height: editorHeight,
+              height: '100%', // 親の高さに合わせる
               transition: 'height 0.2s',
               minHeight: 0,
               resize: 'none',
