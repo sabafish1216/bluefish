@@ -11,7 +11,8 @@ import {
 import {
   Save as SaveIcon,
   FormatTextdirectionLToR as HorizontalIcon,
-  FormatTextdirectionRToL as VerticalIcon
+  FormatTextdirectionRToL as VerticalIcon,
+  Visibility as PreviewIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -41,6 +42,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [pendingTags, setPendingTags] = useState<string[]>([]); // 新規作成されたタグ（まだ保存されていない）
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
   const [isVerticalWriting, setIsVerticalWriting] = useState(false); // 縦書き状態
+  const [previewMode, setPreviewMode] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // 自動保存フック
@@ -301,36 +303,23 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             >
               ルビ
             </Button>
+            <Button
+              size="small"
+              variant={previewMode ? "contained" : "outlined"}
+              startIcon={<PreviewIcon />}
+              onClick={() => setPreviewMode(v => !v)}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              プレビュー
+            </Button>
           </Box>
         </Box>
         <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <Box
-            sx={{
-              flexGrow: 1,
-              minHeight: 0,
-              height: '100%',
-              width: '100%',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              // 縦書き時の上寄せ
-              ...(isVerticalWriting && {
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-              })
-            }}
-          >
-            <textarea
-              ref={textAreaRef}
-              value={body}
-              onChange={e => handleBodyChange(e.target.value)}
-              placeholder="ここに本文を入力してください..."
-              style={{
+          {previewMode ? (
+            <Box
+              sx={{
                 width: '100%',
                 height: '100%',
-                minHeight: 0,
-                maxHeight: '100%',
-                resize: 'none',
                 overflowY: 'auto',
                 fontFamily: 'monospace',
                 fontSize: getFontSize(),
@@ -342,7 +331,8 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 background: 'inherit',
                 color: 'inherit',
                 outline: 'none',
-                // 縦書きスタイル
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
                 ...(isVerticalWriting ? {
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright',
@@ -356,8 +346,63 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                   direction: 'ltr',
                 })
               }}
-            />
-          </Box>
+            >
+              {body}
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                flexGrow: 1,
+                minHeight: 0,
+                height: '100%',
+                width: '100%',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                ...(isVerticalWriting && {
+                  alignItems: 'flex-start',
+                  justifyContent: 'flex-start',
+                })
+              }}
+            >
+              <textarea
+                ref={textAreaRef}
+                value={body}
+                onChange={e => handleBodyChange(e.target.value)}
+                placeholder="ここに本文を入力してください..."
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  minHeight: 0,
+                  maxHeight: '100%',
+                  resize: 'none',
+                  overflowY: 'auto',
+                  fontFamily: 'monospace',
+                  fontSize: getFontSize(),
+                  lineHeight: 1.6,
+                  border: '1px solid #ccc',
+                  borderRadius: 8,
+                  padding: 16,
+                  boxSizing: 'border-box',
+                  background: 'inherit',
+                  color: 'inherit',
+                  outline: 'none',
+                  ...(isVerticalWriting ? {
+                    writingMode: 'vertical-rl',
+                    textOrientation: 'upright',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                    paddingRight: 20,
+                    paddingLeft: 20,
+                  } : {
+                    writingMode: 'horizontal-tb',
+                    textOrientation: 'mixed',
+                    direction: 'ltr',
+                  })
+                }}
+              />
+            </Box>
+          )}
           {settings.wordCountDisplay && (
             <Typography
               variant="caption"
