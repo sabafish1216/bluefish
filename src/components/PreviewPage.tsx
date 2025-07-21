@@ -11,7 +11,7 @@ interface PreviewPageProps {
 
 // ルビタグのパース用コンポーネント
 const RubyText: React.FC<{ base: string; ruby: string }> = ({ base, ruby }) => (
-  <ruby style={{ fontSize: '1em', fontWeight: 'bold' }}>
+  <ruby style={{ fontSize: '1em' }}>
     {base}
     <rt style={{ fontSize: '0.6em', fontWeight: 'normal' }}>{ruby}</rt>
   </ruby>
@@ -27,7 +27,7 @@ const parsePage = (pageText: string) => {
     const chapterMatch = line.match(/^\[chapter:(.+?)\]$/);
     if (chapterMatch) {
       return (
-        <Typography key={idx} variant="h4" component="div" sx={{ fontWeight: 'bold', mb: 2 }}>
+        <Typography key={idx} variant="h6" component="div" sx={{ fontWeight: 'bold', mb: 2 }}>
           {chapterMatch[1]}
         </Typography>
       );
