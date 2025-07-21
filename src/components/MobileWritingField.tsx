@@ -6,7 +6,8 @@ import {
   Button,
   Typography,
   Paper,
-  IconButton
+  IconButton,
+  Snackbar
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -51,6 +52,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [editorMode, setEditorMode] = useState(false);
   const [editorHeight, setEditorHeight] = useState('100%');
+  const [toastOpen, setToastOpen] = useState(false);
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -221,6 +223,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               })],
               folderId: selectedFolderId
             });
+            setToastOpen(true);
           }}
         >
           保存
@@ -332,6 +335,13 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
         {renderInfoCard()}
         {renderBodyCard()}
         {/* SpeedDialは一旦非表示 */}
+        <Snackbar
+          open={toastOpen}
+          autoHideDuration={2000}
+          onClose={() => setToastOpen(false)}
+          message="保存が完了しました"
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        />
       </Box>
     );
   }
