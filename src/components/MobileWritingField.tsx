@@ -14,8 +14,6 @@ import {
   Title as TitleIcon,
   FormatSize as FormatSizeIcon,
   ArrowBack as ArrowBackIcon,
-  FormatTextdirectionLToR as HorizontalIcon,
-  FormatTextdirectionRToL as VerticalIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -53,7 +51,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [editorMode, setEditorMode] = useState(false);
   const [editorHeight, setEditorHeight] = useState('100%');
-  const [isVerticalWriting, setIsVerticalWriting] = useState(false); // 縦書き状態
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -294,9 +291,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             <IconButton onClick={() => insertSpecialText('[newpage]')} size="small"><AddIcon fontSize="small" /></IconButton>
             <IconButton onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')} size="small"><TitleIcon fontSize="small" /></IconButton>
             <IconButton onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')} size="small"><FormatSizeIcon fontSize="small" /></IconButton>
-            <IconButton onClick={() => setIsVerticalWriting(v => !v)} size="small">
-              {isVerticalWriting ? <HorizontalIcon fontSize="small" /> : <VerticalIcon fontSize="small" />}
-            </IconButton>
           </Box>
         </Box>
         {/* 本文エディタ */}
@@ -324,19 +318,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               color: 'inherit',
               outline: 'none',
               display: 'block',
-              // 縦書きスタイル
-              ...(isVerticalWriting ? {
-                writingMode: 'vertical-rl',
-                textOrientation: 'upright',
-                direction: 'ltr',
-                textAlign: 'left',
-                paddingRight: 20,
-                paddingLeft: 20,
-              } : {
-                writingMode: 'horizontal-tb',
-                textOrientation: 'mixed',
-                direction: 'ltr',
-              })
             }}
             onFocus={() => setEditorHeight('40vh')} // 40vhに戻す
             onBlur={() => setEditorHeight('100%')}
