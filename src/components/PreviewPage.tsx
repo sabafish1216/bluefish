@@ -20,6 +20,9 @@ const RubyText: React.FC<{ base: string; ruby: string }> = ({ base, ruby }) => (
 const parsePage = (pageText: string) => {
   const lines = pageText.split(/\r?\n/);
   return lines.map((line, idx) => {
+    if (line.trim() === '') {
+      return <div key={idx} style={{ height: '1em' }} />;
+    }
     // タイトルタグ: [chapter:タイトル]
     const chapterMatch = line.match(/^\[chapter:(.+?)\]$/);
     if (chapterMatch) {
