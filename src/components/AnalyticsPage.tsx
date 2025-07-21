@@ -9,12 +9,12 @@ import {
   List,
   ListItem,
   Chip,
-  Tabs,
-  Tab,
+  // Tabs, // 未使用のため削除
+  // Tab, // 未使用のため削除
   Select,
   MenuItem,
-  FormControl,
-  InputLabel,
+  // FormControl, // 未使用のため削除
+  // InputLabel, // 未使用のため削除
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -67,7 +67,7 @@ const AnalyticsPage: React.FC = () => {
     { label: '地の文', value: 1 },
     { label: 'セリフ', value: 2 },
   ];
-  const handleRankingTabChange = (event: React.SyntheticEvent, newValue: number) => setRankingTab(newValue);
+  // const handleRankingTabChange = (event: React.SyntheticEvent, newValue: number) => setRankingTab(newValue); // 未使用のため削除
 
   // データがない場合の表示
   if (novels.length === 0) {
@@ -143,18 +143,16 @@ const AnalyticsPage: React.FC = () => {
               <TrendingUpIcon sx={{ mr: 1 }} />
               作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
             </Typography>
-            <FormControl size="small" variant="outlined" sx={{ minWidth: 120, backgroundColor: 'background.paper', borderRadius: 1, boxShadow: 0 }}>
-              <Select
-                value={rankingTab}
-                onChange={e => setRankingTab(Number(e.target.value))}
-                sx={{ fontWeight: 'bold', fontSize: '0.95rem', height: 36 }}
-                displayEmpty
-              >
-                {rankingOptions.map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Select
+              value={rankingTab}
+              onChange={e => setRankingTab(Number(e.target.value))}
+              sx={{ fontWeight: 'bold', fontSize: '0.95rem', height: 36 }}
+              displayEmpty
+            >
+              {rankingOptions.map(opt => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+              ))}
+            </Select>
           </Box>
           {/* 表彰台・リストのデータ切り替え（中身はそのまま） */}
           {(() => {

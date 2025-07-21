@@ -16,7 +16,7 @@ export const useNovelData = (novels: Novel[], folders: Folder[], tags: Tag[]) =>
       folder,
       novels: novels.filter(novel => novel.folderId === folder.id)
     }))
-  ].filter(({ novels }) => novels.length > 0), [novels, folders]);
+  ], [novels, folders]);
 
   // タグ別に小説をグループ化（0件のタグは除外）
   const novelsByTag = useMemo(() => tags
