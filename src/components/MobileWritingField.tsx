@@ -275,7 +275,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       // 自動スクロール処理を削除
     };
     return (
-      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100vh' }}>
+      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100dvh' }}>
         {/* ヘッダー */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
           <Button onClick={() => setEditorMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1 }}>
