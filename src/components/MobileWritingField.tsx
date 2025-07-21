@@ -272,11 +272,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   if (editorMode) {
     const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       handleBodyChange(e.target.value);
-      setTimeout(() => {
-        if (textAreaRef.current) {
-          textAreaRef.current.scrollTop = textAreaRef.current.scrollHeight;
-        }
-      }, 0);
+      // 自動スクロール処理を削除
     };
     return (
       <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
