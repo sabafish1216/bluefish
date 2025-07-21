@@ -67,19 +67,31 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
 
   useEffect(() => {
     if (editorMode) {
-      const setHeight = () => setDynamicHeight(window.innerHeight);
+      const setHeight = () => {
+        if (window.visualViewport) {
+          setDynamicHeight(window.visualViewport.height);
+        } else {
+          setDynamicHeight(window.innerHeight);
+        }
+      };
       setHeight();
       window.addEventListener('resize', setHeight);
-      // 全体スクロールを即座にトップに戻す（1pxでも動いたら戻す）
-      const handleScroll = () => { if (window.scrollY > 0) window.scrollTo(0, 0); };
-      window.addEventListener('scroll', handleScroll);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setHeight);
+      }
       // body, htmlのoverflowをhiddenに
       const originalBodyOverflow = document.body.style.overflow;
       const originalHtmlOverflow = document.documentElement.style.overflow;
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
+      // 全体スクロールを即座にトップに戻す
+      const handleScroll = () => { if (window.scrollY > 0) window.scrollTo(0, 0); };
+      window.addEventListener('scroll', handleScroll);
       return () => {
         window.removeEventListener('resize', setHeight);
+        if (window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', setHeight);
+        }
         window.removeEventListener('scroll', handleScroll);
         document.body.style.overflow = originalBodyOverflow;
         document.documentElement.style.overflow = originalHtmlOverflow;
