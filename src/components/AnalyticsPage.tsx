@@ -41,17 +41,32 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color }) => (
-  <Card>
-    <CardContent sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+  <Card sx={{
+    minWidth: 0,
+    boxShadow: 1,
+    borderRadius: 2,
+    p: { xs: 0.5, sm: 1 },
+    m: 0,
+  }}>
+    <CardContent sx={{
+      textAlign: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100%',
+      p: { xs: 1, sm: 2 },
+      '&:last-child': { pb: { xs: 1, sm: 2 } }
+    }}>
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Box sx={{ fontSize: 40, color: `${color}.main`, mb: 1 }}>
+        <Box sx={{ fontSize: { xs: 28, sm: 40 }, color: `${color}.main`, mb: { xs: 0.5, sm: 1 } }}>
           {icon}
         </Box>
       </Box>
-      <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+      <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', fontSize: { xs: '1.3rem', sm: '2rem' } }}>
         {value}
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '1rem' } }}>
         {label}
       </Typography>
     </CardContent>
@@ -82,10 +97,20 @@ const AnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', p: 3, overflow: 'auto' }}>
-
-      {/* 基本統計 */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 4, flexShrink: 0, minHeight: 200 }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', p: { xs: 1.5, sm: 3 }, overflow: 'auto' }}>
+      {/* ヘッダー */}
+      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: { xs: 2, sm: 3 }, mt: { xs: 1, sm: 0 }, textAlign: 'center', letterSpacing: 1 }}>
+        執筆統計
+      </Typography>
+      {/* 基本統計カード 2x2グリッド */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+        gap: { xs: 1.2, sm: 3 },
+        mb: { xs: 2, sm: 4 },
+        flexShrink: 0,
+        minHeight: 0
+      }}>
         <StatCard
           icon={<BookIcon />}
           value={novels.length}
