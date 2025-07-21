@@ -297,31 +297,17 @@ const NovelWorkspace: React.FC = () => {
               </Box>
 
               {/* 統計カード */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 4 }}>
-                <Paper sx={{ 
-                  p: 2, 
-                  textAlign: 'center', 
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  elevation: 2
-                }}>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main' }}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 4, width: '100%' }}>
+                <Paper sx={{ flex: 1, minWidth: 0, maxWidth: '50%', p: 2, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider', elevation: 2, boxSizing: 'border-box' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', wordBreak: 'break-all' }}>
                     {novels.length}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     作品数
                   </Typography>
                 </Paper>
-                <Paper sx={{ 
-                  p: 2, 
-                  textAlign: 'center', 
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  elevation: 2
-                }}>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'secondary.main' }}>
+                <Paper sx={{ flex: 1, minWidth: 0, maxWidth: '50%', p: 2, textAlign: 'center', bgcolor: 'background.paper', border: 1, borderColor: 'divider', elevation: 2, boxSizing: 'border-box' }}>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1, color: 'secondary.main', wordBreak: 'break-all' }}>
                     {novels.reduce((total, novel) => total + novel.body.length, 0).toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -358,31 +344,7 @@ const NovelWorkspace: React.FC = () => {
               </Box>
 
               {/* アクションボタン */}
-              <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={<AddIcon />}
-                  onClick={handleNewNovel}
-                  sx={{
-                    fontWeight: 'bold',
-                    py: 1.5,
-                  }}
-                >
-                  新しい作品を作成
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  startIcon={<MenuIcon />}
-                  onClick={() => setMobileDrawerOpen(true)}
-                  sx={{
-                    fontWeight: 'bold',
-                  }}
-                >
-                  作品一覧を開く
-                </Button>
-              </Box>
+              
             </Box>
           )}
         </Box>
