@@ -180,7 +180,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   };
 
   if (previewMode) {
-    return <PreviewPage body={body} />;
+    return <PreviewPage body={body} onBack={() => setPreviewMode(false)} />;
   }
 
   return (
