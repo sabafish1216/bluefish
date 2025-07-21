@@ -70,8 +70,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       const setHeight = () => setDynamicHeight(window.innerHeight);
       setHeight();
       window.addEventListener('resize', setHeight);
-      // 全体スクロールを即座にトップに戻す
-      const handleScroll = () => window.scrollTo(0, 0);
+      // 全体スクロールを即座にトップに戻す（1pxでも動いたら戻す）
+      const handleScroll = () => { if (window.scrollY > 0) window.scrollTo(0, 0); };
       window.addEventListener('scroll', handleScroll);
       return () => {
         window.removeEventListener('resize', setHeight);
@@ -315,7 +315,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             value={body}
             onChange={handleEditorInput}
             autoFocus
-            onFocus={() => setEditorHeight('48vh')} // 48vhに変更
+            onFocus={() => setEditorHeight('45vh')} // 45vhに変更
             onBlur={() => setEditorHeight('100%')}
             style={{
               width: '100%',
