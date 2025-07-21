@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Box,
@@ -9,6 +9,8 @@ import {
   List,
   ListItem,
   Chip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -54,7 +56,9 @@ const StatCard: React.FC<StatCardProps> = ({ icon, value, label, color }) => (
 
 const AnalyticsPage: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
-  const { stats, wordFrequency, novelRanking } = useAnalyticsData(novels);
+  const { stats, wordFrequency, novelRanking, novelRankingNarration, novelRankingDialogue } = useAnalyticsData(novels);
+  const [rankingTab, setRankingTab] = useState(0);
+  const handleRankingTabChange = (event: React.SyntheticEvent, newValue: number) => setRankingTab(newValue);
 
   // データがない場合の表示
   if (novels.length === 0) {
@@ -129,68 +133,90 @@ const AnalyticsPage: React.FC = () => {
             <TrendingUpIcon sx={{ mr: 1 }} />
             作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
           </Typography>
-          {/* 表彰台（1～3位） */}
-          {novelRanking.length > 0 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 2, mb: 2 }}>
-              {/* 2位 */}
-              {novelRanking[1] && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Paper sx={{ width: 100, height: 100, bgcolor: '#C0C0C0', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
-                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.2rem', lineHeight: 1 }}>2</Typography>
-                  </Paper>
-                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 110 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[1].title.length > 12 ? novelRanking[1].title.slice(0,12) + '…' : novelRanking[1].title}</Typography>
-                    <Typography variant="caption" color="text.secondary">{novelRanking[1].characters.toLocaleString()}字</Typography>
+          <Tabs value={rankingTab} onChange={handleRankingTabChange} centered sx={{ mb: 2 }}>
+            <Tab label="総文字数" />
+            <Tab label="地の文" />
+            <Tab label="セリフ" />
+          </Tabs>
+          {/* 表彰台・リストのデータ切り替え */}
+          {(() => {
+            let ranking = novelRanking;
+            let valueKey = 'characters';
+            let valueLabel = '字';
+            if (rankingTab === 1) {
+              ranking = novelRankingNarration;
+              valueKey = 'narration';
+            } else if (rankingTab === 2) {
+              ranking = novelRankingDialogue;
+              valueKey = 'dialogue';
+            }
+            return (
+              <>
+                {/* 表彰台（1～3位） */}
+                {ranking.length > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: 2, mb: 2 }}>
+                    {/* 2位 */}
+                    {ranking[1] && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Paper sx={{ width: 100, height: 100, bgcolor: '#C0C0C0', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                          borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.2rem', lineHeight: 1 }}>2</Typography>
+                        </Paper>
+                        <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 110 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{ranking[1].title.length > 12 ? ranking[1].title.slice(0,12) + '…' : ranking[1].title}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[1][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                        </Box>
+                      </Box>
+                    )}
+                    {/* 1位 */}
+                    {ranking[0] && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Paper sx={{ width: 120, height: 120, bgcolor: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                          borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                          <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.7rem', lineHeight: 1 }}>1</Typography>
+                        </Paper>
+                        <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 130 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }} noWrap>{ranking[0].title.length > 12 ? ranking[0].title.slice(0,12) + '…' : ranking[0].title}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[0][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                        </Box>
+                      </Box>
+                    )}
+                    {/* 3位 */}
+                    {ranking[2] && (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <Paper sx={{ width: 90, height: 90, bgcolor: '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
+                          borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
+                          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: '1.8rem', lineHeight: 1 }}>3</Typography>
+                        </Paper>
+                        <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 100 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{ranking[2].title.length > 12 ? ranking[2].title.slice(0,12) + '…' : ranking[2].title}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[2][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                        </Box>
+                      </Box>
+                    )}
                   </Box>
+                )}
+                {/* 4位以降リスト */}
+                <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+                  {ranking.length > 3 ? (
+                    <List>
+                      {ranking.slice(3).map((novel, index) => (
+                        <ListItem key={novel.title} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
+                          <Chip label={`#${index + 4}`} color='default' size='small' sx={{ minWidth: 32, fontWeight: 'bold', fontSize: '1rem' }} />
+                          <Typography variant="body2" sx={{ fontWeight: 'bold', flexGrow: 1, fontSize: '1rem' }} noWrap>{novel.title}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.95rem' }}>{novel[valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                        </ListItem>
+                      ))}
+                    </List>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                      4位以降のランキングデータがありません
+                    </Typography>
+                  )}
                 </Box>
-              )}
-              {/* 1位 */}
-              {novelRanking[0] && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Paper sx={{ width: 120, height: 120, bgcolor: '#FFD700', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
-                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
-                    <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'white', fontSize: '2.7rem', lineHeight: 1 }}>1</Typography>
-                  </Paper>
-                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 130 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[0].title.length > 12 ? novelRanking[0].title.slice(0,12) + '…' : novelRanking[0].title}</Typography>
-                    <Typography variant="caption" color="text.secondary">{novelRanking[0].characters.toLocaleString()}字</Typography>
-                  </Box>
-                </Box>
-              )}
-              {/* 3位 */}
-              {novelRanking[2] && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <Paper sx={{ width: 90, height: 90, bgcolor: '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1,
-                    borderTopLeftRadius: '30%', borderTopRightRadius: '30%', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', fontSize: '1.8rem', lineHeight: 1 }}>3</Typography>
-                  </Paper>
-                  <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 100 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{novelRanking[2].title.length > 12 ? novelRanking[2].title.slice(0,12) + '…' : novelRanking[2].title}</Typography>
-                    <Typography variant="caption" color="text.secondary">{novelRanking[2].characters.toLocaleString()}字</Typography>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          )}
-          {/* 4位以降リスト */}
-          <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-            {novelRanking.length > 3 ? (
-              <List>
-                {novelRanking.slice(3).map((novel, index) => (
-                  <ListItem key={novel.title} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
-                    <Chip label={`#${index + 4}`} color='default' size='small' sx={{ minWidth: 32, fontWeight: 'bold', fontSize: '1rem' }} />
-                    <Typography variant="body2" sx={{ fontWeight: 'bold', flexGrow: 1, fontSize: '1rem' }} noWrap>{novel.title}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.95rem' }}>{novel.characters.toLocaleString()}字</Typography>
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary" textAlign="center">
-                4位以降のランキングデータがありません
-              </Typography>
-            )}
-          </Box>
+              </>
+            );
+          })()}
         </Paper>
       </Box>
     </Box>
