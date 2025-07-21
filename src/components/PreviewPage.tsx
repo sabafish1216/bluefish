@@ -27,7 +27,7 @@ const parsePage = (pageText: string) => {
     const chapterMatch = line.match(/^\[chapter:(.+?)\]$/);
     if (chapterMatch) {
       return (
-        <Typography key={idx} variant="h6" component="div" sx={{ fontWeight: 'bold', mb: 2 }}>
+        <Typography key={idx} variant="h5" component="div" sx={{ fontWeight: 'bold', mb: 2 }}>
           {chapterMatch[1]}
         </Typography>
       );
