@@ -70,7 +70,13 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       const setHeight = () => setDynamicHeight(window.innerHeight);
       setHeight();
       window.addEventListener('resize', setHeight);
-      return () => window.removeEventListener('resize', setHeight);
+      // 全体スクロールを即座にトップに戻す
+      const handleScroll = () => window.scrollTo(0, 0);
+      window.addEventListener('scroll', handleScroll);
+      return () => {
+        window.removeEventListener('resize', setHeight);
+        window.removeEventListener('scroll', handleScroll);
+      };
     }
   }, [editorMode]);
 
