@@ -11,6 +11,10 @@ import {
   Chip,
   Tabs,
   Tab,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   BarChart as BarChartIcon,
@@ -58,6 +62,11 @@ const AnalyticsPage: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
   const { stats, wordFrequency, novelRanking, novelRankingNarration, novelRankingDialogue } = useAnalyticsData(novels);
   const [rankingTab, setRankingTab] = useState(0);
+  const rankingOptions = [
+    { label: '総文字数', value: 0 },
+    { label: '地の文', value: 1 },
+    { label: 'セリフ', value: 2 },
+  ];
   const handleRankingTabChange = (event: React.SyntheticEvent, newValue: number) => setRankingTab(newValue);
 
   // データがない場合の表示
@@ -128,27 +137,34 @@ const AnalyticsPage: React.FC = () => {
         </Paper>
 
         {/* 作品別ランキング */}
-        <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column' }}>
+        <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', position: 'relative' }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center' }}>
             <TrendingUpIcon sx={{ mr: 1 }} />
             作品別ランキング TOP {ANALYTICS_CONSTANTS.MAX_NOVEL_RANKING}
           </Typography>
-          <Tabs value={rankingTab} onChange={handleRankingTabChange} centered sx={{ mb: 2 }}>
-            <Tab label="総文字数" />
-            <Tab label="地の文" />
-            <Tab label="セリフ" />
-          </Tabs>
-          {/* 表彰台・リストのデータ切り替え */}
+          <FormControl size="small" sx={{ position: 'absolute', top: 16, right: 16, minWidth: 120 }}>
+            <InputLabel id="ranking-select-label">部門</InputLabel>
+            <Select
+              labelId="ranking-select-label"
+              value={rankingTab}
+              label="部門"
+              onChange={e => setRankingTab(Number(e.target.value))}
+            >
+              {rankingOptions.map(opt => (
+                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {/* 表彰台・リストのデータ切り替え（中身はそのまま） */}
           {(() => {
             let ranking = novelRanking;
-            let valueKey = 'characters';
             let valueLabel = '字';
             if (rankingTab === 1) {
               ranking = novelRankingNarration;
-              valueKey = 'narration';
+              valueLabel = '字';
             } else if (rankingTab === 2) {
               ranking = novelRankingDialogue;
-              valueKey = 'dialogue';
+              valueLabel = '字';
             }
             return (
               <>
@@ -164,7 +180,7 @@ const AnalyticsPage: React.FC = () => {
                         </Paper>
                         <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 110 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{ranking[1].title.length > 12 ? ranking[1].title.slice(0,12) + '…' : ranking[1].title}</Typography>
-                          <Typography variant="caption" color="text.secondary">{ranking[1][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[1].characters.toLocaleString()}{valueLabel}</Typography>
                         </Box>
                       </Box>
                     )}
@@ -177,7 +193,7 @@ const AnalyticsPage: React.FC = () => {
                         </Paper>
                         <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 130 }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }} noWrap>{ranking[0].title.length > 12 ? ranking[0].title.slice(0,12) + '…' : ranking[0].title}</Typography>
-                          <Typography variant="caption" color="text.secondary">{ranking[0][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[0].characters.toLocaleString()}{valueLabel}</Typography>
                         </Box>
                       </Box>
                     )}
@@ -190,7 +206,7 @@ const AnalyticsPage: React.FC = () => {
                         </Paper>
                         <Box sx={{ mt: 0.5, textAlign: 'center', maxWidth: 100 }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} noWrap>{ranking[2].title.length > 12 ? ranking[2].title.slice(0,12) + '…' : ranking[2].title}</Typography>
-                          <Typography variant="caption" color="text.secondary">{ranking[2][valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                          <Typography variant="caption" color="text.secondary">{ranking[2].characters.toLocaleString()}{valueLabel}</Typography>
                         </Box>
                       </Box>
                     )}
@@ -204,7 +220,7 @@ const AnalyticsPage: React.FC = () => {
                         <ListItem key={novel.title} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
                           <Chip label={`#${index + 4}`} color='default' size='small' sx={{ minWidth: 32, fontWeight: 'bold', fontSize: '1rem' }} />
                           <Typography variant="body2" sx={{ fontWeight: 'bold', flexGrow: 1, fontSize: '1rem' }} noWrap>{novel.title}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.95rem' }}>{novel[valueKey]?.toLocaleString()}{valueLabel}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.95rem' }}>{novel.characters.toLocaleString()}{valueLabel}</Typography>
                         </ListItem>
                       ))}
                     </List>
