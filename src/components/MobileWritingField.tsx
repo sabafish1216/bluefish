@@ -73,9 +73,16 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       // 全体スクロールを即座にトップに戻す（1pxでも動いたら戻す）
       const handleScroll = () => { if (window.scrollY > 0) window.scrollTo(0, 0); };
       window.addEventListener('scroll', handleScroll);
+      // body, htmlのoverflowをhiddenに
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       return () => {
         window.removeEventListener('resize', setHeight);
         window.removeEventListener('scroll', handleScroll);
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalHtmlOverflow;
       };
     }
   }, [editorMode]);
