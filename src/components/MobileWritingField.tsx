@@ -51,7 +51,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [selectedFolderId, setSelectedFolderId] = useState<string>(novel.folderId);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [editorMode, setEditorMode] = useState(false);
-  const [editorHeight, setEditorHeight] = useState('100%');
   const [toastOpen, setToastOpen] = useState(false);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
 
