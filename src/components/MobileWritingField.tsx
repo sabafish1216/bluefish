@@ -53,6 +53,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [editorMode, setEditorMode] = useState(false);
   const [editorHeight, setEditorHeight] = useState('100%');
   const [toastOpen, setToastOpen] = useState(false);
+  const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -63,6 +64,15 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     setSelectedTags(novel.tags);
     setSelectedFolderId(novel.folderId);
   }, [novel]);
+
+  useEffect(() => {
+    if (editorMode) {
+      const setHeight = () => setDynamicHeight(window.innerHeight);
+      setHeight();
+      window.addEventListener('resize', setHeight);
+      return () => window.removeEventListener('resize', setHeight);
+    }
+  }, [editorMode]);
 
   // タイトル変更時の自動保存
   const handleTitleChange = useCallback((newTitle: string) => {
@@ -275,7 +285,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       // 自動スクロール処理を削除
     };
     return (
-      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100dvh' }}>
+      <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} style={dynamicHeight ? { height: dynamicHeight, paddingBottom: 'env(safe-area-inset-bottom)' } : {}}>
         {/* ヘッダー */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
           <Button onClick={() => setEditorMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1 }}>
