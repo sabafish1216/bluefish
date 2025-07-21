@@ -7,9 +7,10 @@ interface Props {
   onChange: (tags: string[]) => void;
   onCreate: (tag: string) => void;
   tagCounts?: { [key: string]: number };
+  size?: 'small' | 'medium';
 }
 
-const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagCounts = {} }) => {
+const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagCounts = {}, size = 'medium' }) => {
   // 件数順（降順）でソート
   const sortedOptions = [...options].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0));
   
@@ -24,6 +25,7 @@ const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagC
         if (added.length > 0) added.forEach(onCreate);
         onChange(newValue);
       }}
+      size={size}
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => (
           <Chip variant="outlined" label={option} {...getTagProps({ index })} key={option} />
@@ -39,7 +41,7 @@ const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagC
           </Box>
         </Box>
       )}
-      renderInput={params => <TextField {...params} label="タグ" placeholder="タグを追加" />}
+      renderInput={params => <TextField {...params} label="タグ" placeholder="タグを追加" size={size} />}
     />
   );
 };
