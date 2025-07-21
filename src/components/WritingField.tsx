@@ -12,7 +12,9 @@ import {
   Save as SaveIcon,
   FormatTextdirectionLToR as HorizontalIcon,
   FormatTextdirectionRToL as VerticalIcon,
-  Visibility as PreviewIcon
+  Visibility as PreviewIcon,
+  ZoomIn as ZoomInIcon,
+  ZoomOut as ZoomOutIcon
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -45,6 +47,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [isVerticalWriting, setIsVerticalWriting] = useState(false); // 縦書き状態
   const [previewMode, setPreviewMode] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const [expanded, setExpanded] = useState(false);
 
   // 自動保存フック
   const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -185,91 +188,94 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3 }}>
-      <Paper sx={{ p: 3, mb: 3, elevation: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
-            作品情報
-          </Typography>
-          {/* 保存状態表示 */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {isSaving && (
-              <Chip 
-                label="保存中..." 
-                size="small" 
-                color="info" 
-                variant="outlined"
+      {/* 作品情報カード */}
+      {!expanded && (
+        <Paper sx={{ p: 3, mb: 3, elevation: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
+              作品情報
+            </Typography>
+            {/* 保存状態表示 */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {isSaving && (
+                <Chip 
+                  label="保存中..." 
+                  size="small" 
+                  color="info" 
+                  variant="outlined"
+                />
+              )}
+              {lastSaved && !isSaving && (
+                <Chip 
+                  label={`保存済み ${lastSaved.toLocaleTimeString()}`} 
+                  size="small" 
+                  color="success" 
+                  variant="outlined"
+                />
+              )}
+            </Box>
+          </Box>
+
+          <TextField
+            fullWidth
+            label="タイトル"
+            value={title}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            sx={{ mb: 3 }}
+            required
+          />
+
+          <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
+            <Box sx={{ flex: 1 }}>
+              <FolderSelector
+                value={selectedFolderId}
+                options={folders}
+                onChange={handleFolderChange}
+                onCreate={(name) => {
+                  const newFolder = {
+                    id: Math.random().toString(36).slice(2),
+                    name: name.trim()
+                  };
+                  dispatch(addFolder(newFolder));
+                  handleFolderChange(newFolder.id);
+                }}
               />
-            )}
-            {lastSaved && !isSaving && (
-              <Chip 
-                label={`保存済み ${lastSaved.toLocaleTimeString()}`} 
-                size="small" 
-                color="success" 
-                variant="outlined"
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <TagSelector
+                value={displayTagNames}
+                options={tags.map(t => t.name)}
+                tagCounts={tagCounts}
+                onChange={handleTagsChange}
+                onCreate={(tag) => {
+                  // 新規作成はonChangeで処理されるので、ここでは何もしない
+                }}
               />
-            )}
+            </Box>
           </Box>
-        </Box>
 
-        <TextField
-          fullWidth
-          label="タイトル"
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          sx={{ mb: 3 }}
-          required
-        />
-
-        <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
-          <Box sx={{ flex: 1 }}>
-            <FolderSelector
-              value={selectedFolderId}
-              options={folders}
-              onChange={handleFolderChange}
-              onCreate={(name) => {
-                const newFolder = {
-                  id: Math.random().toString(36).slice(2),
-                  name: name.trim()
-                };
-                dispatch(addFolder(newFolder));
-                handleFolderChange(newFolder.id);
-              }}
-            />
+          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<SaveIcon />}
+              onClick={() => saveImmediately({
+                title,
+                body,
+                tags: [...selectedTags, ...pendingTags.map(name => {
+                  const existingTag = tags.find(t => t.name === name);
+                  return existingTag ? existingTag.id : name;
+                })],
+                folderId: selectedFolderId
+              })}
+            >
+              保存
+            </Button>
           </Box>
-          <Box sx={{ flex: 1 }}>
-            <TagSelector
-              value={displayTagNames}
-              options={tags.map(t => t.name)}
-              tagCounts={tagCounts}
-              onChange={handleTagsChange}
-              onCreate={(tag) => {
-                // 新規作成はonChangeで処理されるので、ここでは何もしない
-              }}
-            />
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<SaveIcon />}
-            onClick={() => saveImmediately({
-              title,
-              body,
-              tags: [...selectedTags, ...pendingTags.map(name => {
-                const existingTag = tags.find(t => t.name === name);
-                return existingTag ? existingTag.id : name;
-              })],
-              folderId: selectedFolderId
-            })}
-          >
-            保存
-          </Button>
-        </Box>
-      </Paper>
-
-      <Paper sx={{ flexGrow: 1, p: 3, elevation: 2, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        </Paper>
+      )}
+      {/* 本文カード */}
+      <Paper sx={{ flexGrow: 1, p: 3, elevation: 2, display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative', width: expanded ? '100%' : undefined, maxWidth: expanded ? '100%' : undefined }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
             本文
@@ -429,6 +435,17 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             </Typography>
           )}
         </Box>
+        {/* 拡大/縮小ボタン */}
+        <Button
+          variant="contained"
+          color="info"
+          size="small"
+          startIcon={expanded ? <ZoomOutIcon /> : <ZoomInIcon />}
+          onClick={() => setExpanded(e => !e)}
+          sx={{ position: 'absolute', right: 16, bottom: 16, zIndex: 10 }}
+        >
+          {expanded ? '縮小' : '拡大'}
+        </Button>
       </Paper>
     </Box>
   );
