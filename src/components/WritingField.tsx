@@ -161,10 +161,10 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   
   // 表示用のタグ名リスト（既存タグ + 新規作成タグ）
-  const displayTagNames = [
+  const displayTagNames = Array.from(new Set([
     ...selectedTagObjects.map(t => t.name),
     ...pendingTags
-  ];
+  ]));
 
   // タグの件数を計算
   const tagCounts: { [key: string]: number } = {};
