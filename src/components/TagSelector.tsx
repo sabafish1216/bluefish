@@ -21,8 +21,6 @@ const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagC
       options={sortedOptions}
       value={value}
       onChange={(_, newValue) => {
-        const added = newValue.filter(v => !options.includes(v));
-        if (added.length > 0) added.forEach(onCreate);
         onChange(newValue);
       }}
       size={size}
