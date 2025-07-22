@@ -180,10 +180,10 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   }, [body, debouncedSave]);
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
-  const displayTagNames = [
+  const displayTagNames = Array.from(new Set([
     ...selectedTagObjects.map(t => t.name),
     ...pendingTags
-  ];
+  ]));
 
   const tagCounts: { [key: string]: number } = {};
   tags.forEach(tag => {
