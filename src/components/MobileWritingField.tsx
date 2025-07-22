@@ -201,61 +201,60 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
 
   // --- 作品情報カード ---
   const renderInfoCard = () => (
-    <Paper sx={{ p: 1, mb: 1, minHeight: 0, maxHeight: 120, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <TextField
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          size="small"
-          margin="dense"
-          placeholder="タイトル"
-          sx={{ flex: 1, minWidth: 0 }}
-        />
-        <Button
-          variant="contained"
-          size="small"
-          startIcon={<SaveIcon />}
-          onClick={() => {
-            saveImmediately({
-              title,
-              body,
-              tags: [...selectedTags, ...pendingTags.map(name => {
-                const existingTag = tags.find(t => t.name === name);
-                return existingTag ? existingTag.id : name;
-              })],
-              folderId: selectedFolderId
-            });
-            setToastOpen(true);
-          }}
-          sx={{ minWidth: 0, px: 1.5 }}
-        >
-          保存
-        </Button>
-      </Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <FolderSelector
-          value={selectedFolderId}
-          options={folders}
-          onChange={handleFolderChange}
-          onCreate={(name) => {
-            const newFolder = {
-              id: Math.random().toString(36).slice(2),
-              name: name.trim()
-            };
-            dispatch(addFolder(newFolder));
-            handleFolderChange(newFolder.id);
-          }}
-          size="small"
-        />
-        <TagSelector
-          value={displayTagNames}
-          options={tags.map(t => t.name)}
-          tagCounts={tagCounts}
-          onChange={handleTagsChange}
-          onCreate={() => {}}
-          size="small"
-        />
-      </Box>
+    <Paper sx={{ p: 2, mb: 2, display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+        作品情報
+      </Typography>
+      <TextField
+        value={title}
+        onChange={(e) => handleTitleChange(e.target.value)}
+        size="small"
+        margin="dense"
+        placeholder="タイトル"
+        sx={{ mb: 1 }}
+      />
+      <FolderSelector
+        value={selectedFolderId}
+        options={folders}
+        onChange={handleFolderChange}
+        onCreate={(name) => {
+          const newFolder = {
+            id: Math.random().toString(36).slice(2),
+            name: name.trim()
+          };
+          dispatch(addFolder(newFolder));
+          handleFolderChange(newFolder.id);
+        }}
+        size="small"
+      />
+      <TagSelector
+        value={displayTagNames}
+        options={tags.map(t => t.name)}
+        tagCounts={tagCounts}
+        onChange={handleTagsChange}
+        onCreate={() => {}}
+        size="small"
+      />
+      <Button
+        variant="contained"
+        size="small"
+        startIcon={<SaveIcon />}
+        onClick={() => {
+          saveImmediately({
+            title,
+            body,
+            tags: [...selectedTags, ...pendingTags.map(name => {
+              const existingTag = tags.find(t => t.name === name);
+              return existingTag ? existingTag.id : name;
+            })],
+            folderId: selectedFolderId
+          });
+          setToastOpen(true);
+        }}
+        sx={{ mt: 2, alignSelf: 'flex-end', minWidth: 0, px: 2 }}
+      >
+        保存
+      </Button>
     </Paper>
   );
 
