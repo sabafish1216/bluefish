@@ -273,7 +273,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
         style={{
           width: '100%',
           minHeight: 120,
-          fontFamily: 'monospace',
+          fontFamily: "'Noto Sans JP', sans-serif",
           fontSize: getFontSize(),
           lineHeight: 1.6,
           border: '1px solid #ccc',
@@ -334,7 +334,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               minHeight: 0,
               resize: 'none',
               overflowY: 'auto',
-              fontFamily: 'monospace',
+              fontFamily: "'Noto Sans JP', sans-serif",
               fontSize: getFontSize(),
               lineHeight: 1.6,
               border: 'none', // デバッグ用赤枠線を撤廃

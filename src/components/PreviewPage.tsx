@@ -61,7 +61,7 @@ const PreviewPage: React.FC<PreviewPageProps> = ({ body, onBack }) => {
 
   return (
     <Box sx={{ width: '100%', height: '100%', p: 4, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-      <Paper sx={{ width: '100%', maxWidth: 700, minHeight: 400, p: 4, fontFamily: 'monospace', fontSize: 16, lineHeight: 1.6, height: 'calc(100vh - 64px)', maxHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+      <Paper sx={{ width: '100%', maxWidth: 700, minHeight: 400, p: 4, fontFamily: "'Noto Sans JP', sans-serif", fontSize: 16, lineHeight: 1.6, height: 'calc(100vh - 64px)', maxHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Button startIcon={<ArrowBackIcon />} onClick={onBack} variant="outlined" size="small">
             戻る
