@@ -312,11 +312,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               {body.length.toLocaleString()} / 300,000
             </Typography>
           )}
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <IconButton onClick={() => insertSpecialText('[newpage]')} size="small"><AddIcon fontSize="small" /></IconButton>
-            <IconButton onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')} size="small"><TitleIcon fontSize="small" /></IconButton>
-            <IconButton onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')} size="small"><FormatSizeIcon fontSize="small" /></IconButton>
-          </Box>
+          {/* 右側のボタンはバナーに移動したため削除 */}
         </Box>
         {/* 本文エディタ */}
         <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
@@ -361,6 +357,29 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             bgcolor: (theme) => theme.palette.background.paper,
             overflow: 'hidden',
           }}>
+            {/* 新規追加：ページ・章・ルビボタン */}
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[newpage]')}
+            >＋頁</Button>
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')}
+            >＋章</Button>
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')}
+            >＋ルビ</Button>
+            {/* 既存の特殊文字ボタン群 */}
             <Button
               variant="text"
               size="small"
