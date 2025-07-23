@@ -17,6 +17,7 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PreviewPage from './PreviewPage';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
@@ -313,7 +314,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
                 {body.length.toLocaleString()} / 300,000
               </Typography>
             )}
-            <IconButton onClick={() => setPreviewMode(false)} size="small"><VisibilityIcon /></IconButton>
+            <IconButton onClick={() => setPreviewMode(false)} size="small"><VisibilityOffIcon color="primary" /></IconButton>
           </Box>
           {/* プレビュー本文（カードなし、エディタUIと同じ余白・背景） */}
           <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto', fontFamily: "'Noto Sans JP', sans-serif", fontSize: getFontSize(), lineHeight: 1.6, bgcolor: 'background.paper', color: 'inherit' }}>
@@ -338,7 +339,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               {body.length.toLocaleString()} / 300,000
             </Typography>
           )}
-          <IconButton onClick={() => setPreviewMode(true)} size="small"><VisibilityIcon /></IconButton>
+          <IconButton onClick={() => setPreviewMode(true)} size="small"><VisibilityIcon color="action" /></IconButton>
         </Box>
         {/* 本文エディタ */}
         <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
