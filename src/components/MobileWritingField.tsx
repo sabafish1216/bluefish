@@ -11,9 +11,6 @@ import {
 } from '@mui/material';
 import {
   Save as SaveIcon,
-  Add as AddIcon,
-  Title as TitleIcon,
-  FormatSize as FormatSizeIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
