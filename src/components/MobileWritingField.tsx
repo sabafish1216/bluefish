@@ -373,14 +373,12 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               justifyContent: 'center',
               alignItems: 'center',
               gap: 0.5,
-              p: 0,
+              pt: 2,
               m: 0,
-              height: 40,
-              minHeight: 0,
+              height: 28,
               borderTop: 1,
               borderColor: 'divider',
               bgcolor: (theme) => theme.palette.background.paper,
-              overflow: 'hidden',
             }}>
               {/* 既存の特殊文字ボタン群＋ページ・章・ルビボタン */}
               {[
