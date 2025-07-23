@@ -16,6 +16,8 @@ import {
   FormatSize as FormatSizeIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import PreviewPage from './PreviewPage';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
 import { addFolder } from '../features/folders/foldersSlice';
@@ -53,6 +55,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [editorMode, setEditorMode] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
+  const [previewMode, setPreviewMode] = useState(false);
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -296,6 +299,29 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   );
 
   if (editorMode) {
+    if (previewMode) {
+      // プレビュー画面
+      return (
+        <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} style={dynamicHeight ? { height: dynamicHeight, paddingBottom: 'env(safe-area-inset-bottom)' } : {}}>
+          {/* ヘッダー */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
+            <Button onClick={() => setPreviewMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1 }}>
+              戻る
+            </Button>
+            {settings.wordCountDisplay && (
+              <Typography variant="caption" sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: 'text.secondary', fontWeight: 'bold', fontSize: '1rem', pointerEvents: 'none' }}>
+                {body.length.toLocaleString()} / 300,000
+              </Typography>
+            )}
+            <IconButton onClick={() => setPreviewMode(false)} size="small"><VisibilityIcon /></IconButton>
+          </Box>
+          {/* プレビュー本文 */}
+          <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+            <PreviewPage body={body} onBack={() => setPreviewMode(false)} />
+          </Box>
+        </Box>
+      );
+    }
     const handleEditorInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       handleBodyChange(e.target.value);
       // 自動スクロール処理を削除
@@ -312,7 +338,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               {body.length.toLocaleString()} / 300,000
             </Typography>
           )}
-          {/* 右側のボタンはバナーに移動したため削除 */}
+          <IconButton onClick={() => setPreviewMode(true)} size="small"><VisibilityIcon /></IconButton>
         </Box>
         {/* 本文エディタ */}
         <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
@@ -343,106 +369,108 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             }}
           />
           {/* 特殊文字バナー（下部スペース徹底排除アプローチ） */}
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 0.5,
-            p: 0,
-            m: 0,
-            height: 28,
-            minHeight: 0,
-            borderTop: 1,
-            borderColor: 'divider',
-            bgcolor: (theme) => theme.palette.background.paper,
-            overflow: 'hidden',
-          }}>
-            {/* 既存の特殊文字ボタン群 */}
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                insertSpecialText('「」');
-                setTimeout(() => {
-                  const textArea = textAreaRef.current;
-                  if (textArea) {
-                    const pos = (textArea.selectionStart || 0) - 1;
-                    textArea.setSelectionRange(pos, pos);
-                  }
-                }, 0);
-              }}
-            >「」</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                insertSpecialText('『』');
-                setTimeout(() => {
-                  const textArea = textAreaRef.current;
-                  if (textArea) {
-                    const pos = (textArea.selectionStart || 0) - 1;
-                    textArea.setSelectionRange(pos, pos);
-                  }
-                }, 0);
-              }}
-            >『』</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => {
-                insertSpecialText('（）');
-                setTimeout(() => {
-                  const textArea = textAreaRef.current;
-                  if (textArea) {
-                    const pos = (textArea.selectionStart || 0) - 1;
-                    textArea.setSelectionRange(pos, pos);
-                  }
-                }, 0);
-              }}
-            >（）</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('…')}
-            >…</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('—')}
-            >—</Button>
-            {/* 新規追加：ページ・章・ルビボタン（右側・スタイリッシュ表記） */}
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[newpage]')}
-            >⧉</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')}
-            >§</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0, fontFamily: 'serif' }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')}
-            >𝑟𝑏</Button>
-          </Box>
+          {!previewMode && (
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 0.5,
+              p: 0,
+              m: 0,
+              height: 28,
+              minHeight: 0,
+              borderTop: 1,
+              borderColor: 'divider',
+              bgcolor: (theme) => theme.palette.background.paper,
+              overflow: 'hidden',
+            }}>
+              {/* 既存の特殊文字ボタン群 */}
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  insertSpecialText('「」');
+                  setTimeout(() => {
+                    const textArea = textAreaRef.current;
+                    if (textArea) {
+                      const pos = (textArea.selectionStart || 0) - 1;
+                      textArea.setSelectionRange(pos, pos);
+                    }
+                  }, 0);
+                }}
+              >「」</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  insertSpecialText('『』');
+                  setTimeout(() => {
+                    const textArea = textAreaRef.current;
+                    if (textArea) {
+                      const pos = (textArea.selectionStart || 0) - 1;
+                      textArea.setSelectionRange(pos, pos);
+                    }
+                  }, 0);
+                }}
+              >『』</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  insertSpecialText('（）');
+                  setTimeout(() => {
+                    const textArea = textAreaRef.current;
+                    if (textArea) {
+                      const pos = (textArea.selectionStart || 0) - 1;
+                      textArea.setSelectionRange(pos, pos);
+                    }
+                  }, 0);
+                }}
+              >（）</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertSpecialText('…')}
+              >…</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertSpecialText('—')}
+              >—</Button>
+              {/* 新規追加：ページ・章・ルビボタン（右側・スタイリッシュ表記） */}
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertSpecialText('[newpage]')}
+              >⧉</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')}
+              >§</Button>
+              <Button
+                variant="text"
+                size="small"
+                sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0, fontFamily: 'serif' }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')}
+              >𝑟𝑏</Button>
+            </Box>
+          )}
         </Box>
       </Box>
     );
