@@ -11,8 +11,9 @@ interface Props {
 }
 
 const TagSelector: React.FC<Props> = ({ value, options, onChange, onCreate, tagCounts = {}, size = 'medium' }) => {
-  // 件数順（降順）でソート
-  const sortedOptions = [...options].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0));
+  // 件数順（降順）でソートし、0件のタグは除外
+  const filteredOptions = options.filter(tag => (tagCounts[tag] || 0) > 0);
+  const sortedOptions = [...filteredOptions].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0));
   
   return (
     <Autocomplete
