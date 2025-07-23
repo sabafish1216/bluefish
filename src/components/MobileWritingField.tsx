@@ -345,7 +345,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             value={body}
             onChange={handleEditorInput}
             autoFocus
-            // onFocus, onBlurでsetEditorHeightは不要
+            onBlur={() => setDynamicHeight(window.innerHeight)}
             style={{
               width: '100%',
               height: '100%', // 親の高さに合わせる
