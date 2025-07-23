@@ -318,71 +318,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             <IconButton onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')} size="small"><FormatSizeIcon fontSize="small" /></IconButton>
           </Box>
         </Box>
-        {/* 特殊文字バナー */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, py: 1, bgcolor: 'grey.100', borderBottom: 1, borderColor: 'divider' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ minWidth: 0, px: 1 }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              insertSpecialText('「」');
-              setTimeout(() => {
-                const textArea = textAreaRef.current;
-                if (textArea) {
-                  const pos = (textArea.selectionStart || 0) - 1;
-                  textArea.setSelectionRange(pos, pos);
-                }
-              }, 0);
-            }}
-          >「」</Button>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ minWidth: 0, px: 1 }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              insertSpecialText('『』');
-              setTimeout(() => {
-                const textArea = textAreaRef.current;
-                if (textArea) {
-                  const pos = (textArea.selectionStart || 0) - 1;
-                  textArea.setSelectionRange(pos, pos);
-                }
-              }, 0);
-            }}
-          >『』</Button>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ minWidth: 0, px: 1 }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => {
-              insertSpecialText('（）');
-              setTimeout(() => {
-                const textArea = textAreaRef.current;
-                if (textArea) {
-                  const pos = (textArea.selectionStart || 0) - 1;
-                  textArea.setSelectionRange(pos, pos);
-                }
-              }, 0);
-            }}
-          >（）</Button>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ minWidth: 0, px: 1 }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => insertSpecialText('…')}
-          >…</Button>
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{ minWidth: 0, px: 1 }}
-            onMouseDown={e => e.preventDefault()}
-            onClick={() => insertSpecialText('—')}
-          >—</Button>
-        </Box>
         {/* 本文エディタ */}
         <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
           <textarea
@@ -411,6 +346,71 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               display: 'block',
             }}
           />
+          {/* 特殊文字バナー（テキストエリアの下に移動、ダークモード対応） */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, py: 1, borderTop: 1, borderColor: 'divider', bgcolor: (theme) => theme.palette.background.paper }}>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 0, px: 1 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                insertSpecialText('「」');
+                setTimeout(() => {
+                  const textArea = textAreaRef.current;
+                  if (textArea) {
+                    const pos = (textArea.selectionStart || 0) - 1;
+                    textArea.setSelectionRange(pos, pos);
+                  }
+                }, 0);
+              }}
+            >「」</Button>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 0, px: 1 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                insertSpecialText('『』');
+                setTimeout(() => {
+                  const textArea = textAreaRef.current;
+                  if (textArea) {
+                    const pos = (textArea.selectionStart || 0) - 1;
+                    textArea.setSelectionRange(pos, pos);
+                  }
+                }, 0);
+              }}
+            >『』</Button>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 0, px: 1 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                insertSpecialText('（）');
+                setTimeout(() => {
+                  const textArea = textAreaRef.current;
+                  if (textArea) {
+                    const pos = (textArea.selectionStart || 0) - 1;
+                    textArea.setSelectionRange(pos, pos);
+                  }
+                }, 0);
+              }}
+            >（）</Button>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 0, px: 1 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('…')}
+            >…</Button>
+            <Button
+              variant="outlined"
+              size="small"
+              sx={{ minWidth: 0, px: 1 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('—')}
+            >—</Button>
+          </Box>
         </Box>
       </Box>
     );
