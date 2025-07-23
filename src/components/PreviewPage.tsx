@@ -6,7 +6,8 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 interface PreviewPageProps {
   body: string;
-  onBack: () => void;
+  onBack?: () => void;
+  noCard?: boolean;
 }
 
 // ルビタグのパース用コンポーネント
@@ -51,7 +52,7 @@ const parsePage = (pageText: string) => {
   });
 };
 
-const PreviewPage: React.FC<PreviewPageProps> = ({ body, onBack }) => {
+const PreviewPage: React.FC<PreviewPageProps> = ({ body, onBack, noCard }) => {
   // 改ページタグで分割
   const pages = useMemo(() => body.split(/\[newpage\]/), [body]);
   const [page, setPage] = useState(0);
@@ -59,6 +60,22 @@ const PreviewPage: React.FC<PreviewPageProps> = ({ body, onBack }) => {
   const canPrev = page > 0;
   const canNext = page < pageCount - 1;
 
+  if (noCard) {
+    // モバイル用: カードなし・戻るボタンなし
+    return (
+      <Box sx={{ width: '100%', height: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-all', flex: 1, overflowY: 'auto' }}>
+        {parsePage(pages[page])}
+        {pageCount > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2 }}>
+            <IconButton onClick={() => setPage(page - 1)} disabled={!canPrev} size="small"><ArrowBackIosNewIcon /></IconButton>
+            <Typography variant="body2" sx={{ mx: 2 }}>{page + 1} / {pageCount}</Typography>
+            <IconButton onClick={() => setPage(page + 1)} disabled={!canNext} size="small"><ArrowForwardIosIcon /></IconButton>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+  // PC用: カード・戻るボタンあり
   return (
     <Box sx={{ width: '100%', height: '100%', p: 4, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
       <Paper sx={{ width: '100%', maxWidth: 700, minHeight: 400, p: 4, fontFamily: "'Noto Sans JP', sans-serif", fontSize: 16, lineHeight: 1.6, height: 'calc(100vh - 64px)', maxHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>

@@ -300,12 +300,12 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
 
   if (editorMode) {
     if (previewMode) {
-      // プレビュー画面
+      // プレビュー画面（戻るボタン・カードなし、エディタUI背景に直接表示）
       return (
         <Box sx={{ position: 'fixed', inset: 0, bgcolor: 'background.paper', zIndex: 2000, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} style={dynamicHeight ? { height: dynamicHeight, paddingBottom: 'env(safe-area-inset-bottom)' } : {}}>
           {/* ヘッダー */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
-            <Button onClick={() => setPreviewMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1 }}>
+            <Button onClick={() => setPreviewMode(false)} startIcon={<ArrowBackIcon />} sx={{ minWidth: 0, p: 1, visibility: 'hidden' }}>
               戻る
             </Button>
             {settings.wordCountDisplay && (
@@ -315,9 +315,9 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             )}
             <IconButton onClick={() => setPreviewMode(false)} size="small"><VisibilityIcon /></IconButton>
           </Box>
-          {/* プレビュー本文 */}
-          <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-            <PreviewPage body={body} onBack={() => setPreviewMode(false)} />
+          {/* プレビュー本文（カードなし、エディタUIと同じ余白・背景） */}
+          <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', overflow: 'auto', fontFamily: "'Noto Sans JP', sans-serif", fontSize: getFontSize(), lineHeight: 1.6, bgcolor: 'background.paper', color: 'inherit' }}>
+            <PreviewPage body={body} noCard />
           </Box>
         </Box>
       );
