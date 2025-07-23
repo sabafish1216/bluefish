@@ -357,28 +357,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             bgcolor: (theme) => theme.palette.background.paper,
             overflow: 'hidden',
           }}>
-            {/* 新規追加：ページ・章・ルビボタン */}
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[newpage]')}
-            >＋頁</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')}
-            >＋章</Button>
-            <Button
-              variant="text"
-              size="small"
-              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')}
-            >＋ルビ</Button>
             {/* 既存の特殊文字ボタン群 */}
             <Button
               variant="text"
@@ -442,6 +420,28 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               onMouseDown={e => e.preventDefault()}
               onClick={() => insertSpecialText('—')}
             >—</Button>
+            {/* 新規追加：ページ・章・ルビボタン（右側・スタイリッシュ表記） */}
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[newpage]')}
+            >⧉</Button>
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0 }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル')}
+            >§</Button>
+            <Button
+              variant="text"
+              size="small"
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary', m: 0, fontFamily: 'serif' }}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字')}
+            >𝑟𝑏</Button>
           </Box>
         </Box>
       </Box>
