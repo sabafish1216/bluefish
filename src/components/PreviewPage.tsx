@@ -63,10 +63,27 @@ const PreviewPage: React.FC<PreviewPageProps> = ({ body, onBack, noCard }) => {
   if (noCard) {
     // モバイル用: カードなし・戻るボタンなし
     return (
-      <Box sx={{ width: '100%', height: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-all', flex: 1, overflowY: 'auto' }}>
-        {parsePage(pages[page])}
+      <Box sx={{ width: '100%', height: '100%', position: 'relative', bgcolor: 'background.paper' }}>
+        <Box sx={{ width: '100%', height: '100%', overflowY: 'auto', pb: pageCount > 1 ? 56 : 0 }}>
+          {parsePage(pages[page])}
+        </Box>
         {pageCount > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2 }}>
+          <Box sx={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 3000,
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
+            py: 1,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            // iOSセーフエリア考慮
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}>
             <IconButton onClick={() => setPage(page - 1)} disabled={!canPrev} size="small"><ArrowBackIosNewIcon /></IconButton>
             <Typography variant="body2" sx={{ mx: 2 }}>{page + 1} / {pageCount}</Typography>
             <IconButton onClick={() => setPage(page + 1)} disabled={!canNext} size="small"><ArrowForwardIosIcon /></IconButton>
