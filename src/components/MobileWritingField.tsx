@@ -346,12 +346,12 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               display: 'block',
             }}
           />
-          {/* 特殊文字バナー（テキストエリアの下に移動、ダークモード対応） */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, py: 1, borderTop: 1, borderColor: 'divider', bgcolor: (theme) => theme.palette.background.paper }}>
+          {/* 特殊文字バナー（テキストエリアの下に移動、ダークモード対応、コンパクト＆中央揃え） */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, py: 0.5, minHeight: 32, borderTop: 1, borderColor: 'divider', bgcolor: (theme) => theme.palette.background.paper }}>
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              sx={{ minWidth: 0, px: 1 }}
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary' }}
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 insertSpecialText('「」');
@@ -365,9 +365,9 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               }}
             >「」</Button>
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              sx={{ minWidth: 0, px: 1 }}
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary' }}
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 insertSpecialText('『』');
@@ -381,9 +381,9 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               }}
             >『』</Button>
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              sx={{ minWidth: 0, px: 1 }}
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary' }}
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 insertSpecialText('（）');
@@ -397,16 +397,16 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               }}
             >（）</Button>
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              sx={{ minWidth: 0, px: 1 }}
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary' }}
               onMouseDown={e => e.preventDefault()}
               onClick={() => insertSpecialText('…')}
             >…</Button>
             <Button
-              variant="outlined"
+              variant="text"
               size="small"
-              sx={{ minWidth: 0, px: 1 }}
+              sx={{ minWidth: 0, px: 0.5, fontSize: '1.2rem', lineHeight: 1, color: 'text.primary' }}
               onMouseDown={e => e.preventDefault()}
               onClick={() => insertSpecialText('—')}
             >—</Button>
