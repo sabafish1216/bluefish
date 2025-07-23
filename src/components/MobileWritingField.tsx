@@ -346,8 +346,21 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               display: 'block',
             }}
           />
-          {/* 特殊文字バナー（テキストエリアの下に移動、ダークモード対応、コンパクト＆中央揃え、下部スペース最小化） */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0.5, py: 0.25, minHeight: 24, borderTop: 1, borderColor: 'divider', bgcolor: (theme) => theme.palette.background.paper, m: 0 }}>
+          {/* 特殊文字バナー（下部スペース徹底排除アプローチ） */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 0.5,
+            p: 0,
+            m: 0,
+            height: 28,
+            minHeight: 0,
+            borderTop: 1,
+            borderColor: 'divider',
+            bgcolor: (theme) => theme.palette.background.paper,
+            overflow: 'hidden',
+          }}>
             <Button
               variant="text"
               size="small"
