@@ -5,7 +5,7 @@ interface Props {
   value: string;
   options: { id: string; name: string }[];
   onChange: (folderId: string) => void;
-  onCreate: (name: string) => void;
+  onCreate: () => void;
   size?: 'small' | 'medium';
 }
 
@@ -25,7 +25,7 @@ const FolderSelector: React.FC<Props> = ({ value, options, onChange, onCreate, s
           {folder.name}
         </MenuItem>
       ))}
-      <MenuItem value="__create__" onClick={() => onCreate(prompt('新しいフォルダ名を入力してください') || '')}>
+      <MenuItem value="__create__" onClick={() => onCreate()}>
         + 新規作成
       </MenuItem>
     </TextField>

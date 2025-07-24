@@ -6,7 +6,11 @@ import {
   Button,
   Typography,
   Paper,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -48,6 +52,8 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [previewMode, setPreviewMode] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   // 自動保存フック
   const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -118,6 +124,18 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
+  const handleCreateFolder = useCallback(() => {
+    if (newFolderName.trim()) {
+      const newFolder = {
+        id: Math.random().toString(36).slice(2),
+        name: newFolderName.trim()
+      };
+      dispatch(addFolder(newFolder));
+      setNewFolderName("");
+      setFolderModalOpen(false);
+      setSelectedFolderId(newFolder.id);
+    }
+  }, [newFolderName, dispatch]);
 
 
   // 特殊テキスト挿入関数
@@ -231,14 +249,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                 value={selectedFolderId}
                 options={folders}
                 onChange={handleFolderChange}
-                onCreate={(name) => {
-                  const newFolder = {
-                    id: Math.random().toString(36).slice(2),
-                    name: name.trim()
-                  };
-                  dispatch(addFolder(newFolder));
-                  handleFolderChange(newFolder.id);
-                }}
+                onCreate={() => setFolderModalOpen(true)}
               />
             </Box>
             <Box sx={{ flex: 1 }}>
@@ -448,6 +459,23 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
           )}
         </Box>
       </Paper>
+      {/* フォルダ作成モーダル */}
+      <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>新しいフォルダ</DialogTitle>
+        <DialogContent sx={{ minHeight: 100, pt: 3, pb: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <TextField
+            label="フォルダ名"
+            value={newFolderName}
+            onChange={e => setNewFolderName(e.target.value)}
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFolderModalOpen(false)}>キャンセル</Button>
+          <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

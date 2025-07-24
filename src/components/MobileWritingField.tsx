@@ -7,7 +7,11 @@ import {
   Typography,
   Paper,
   IconButton,
-  Snackbar
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -54,6 +58,8 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [toastOpen, setToastOpen] = useState(false);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
   const [previewMode, setPreviewMode] = useState(false);
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -146,6 +152,18 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
+  const handleCreateFolder = useCallback(() => {
+    if (newFolderName.trim()) {
+      const newFolder = {
+        id: Math.random().toString(36).slice(2),
+        name: newFolderName.trim()
+      };
+      dispatch(addFolder(newFolder));
+      setNewFolderName("");
+      setFolderModalOpen(false);
+      setSelectedFolderId(newFolder.id);
+    }
+  }, [newFolderName, dispatch]);
 
 
   const insertSpecialText = useCallback((text: string, selectText?: string, replaceText?: string) => {
@@ -218,14 +236,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
         value={selectedFolderId}
         options={folders}
         onChange={handleFolderChange}
-        onCreate={(name) => {
-          const newFolder = {
-            id: Math.random().toString(36).slice(2),
-            name: name.trim()
-          };
-          dispatch(addFolder(newFolder));
-          handleFolderChange(newFolder.id);
-        }}
+        onCreate={() => setFolderModalOpen(true)}
         size="small"
       />
       <TagSelector
@@ -431,6 +442,23 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
           message="保存が完了しました"
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         />
+        {/* フォルダ作成モーダル */}
+        <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>新しいフォルダ</DialogTitle>
+          <DialogContent sx={{ minHeight: 100, pt: 3, pb: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <TextField
+              label="フォルダ名"
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              fullWidth
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setFolderModalOpen(false)}>キャンセル</Button>
+            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     );
   }

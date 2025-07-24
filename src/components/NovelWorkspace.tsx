@@ -159,11 +159,16 @@ const NovelWorkspace: React.FC = () => {
 
   const handleCreateFolder = useCallback(() => {
     if (newFolderName.trim()) {
-      // フォルダ追加ロジック（必要ならdispatch）
+      const newFolder = {
+        id: Math.random().toString(36).slice(2),
+        name: newFolderName.trim()
+      };
+      dispatch(addFolder(newFolder));
       setNewFolderName("");
       setFolderModalOpen(false);
+      setSelectedFolderId && setSelectedFolderId(newFolder.id);
     }
-  }, [newFolderName]);
+  }, [newFolderName, dispatch, setSelectedFolderId]);
 
   const handleBackToList = useCallback(() => {
     setSelectedNovelId(null);
@@ -412,6 +417,7 @@ const NovelWorkspace: React.FC = () => {
               onChange={e => setNewFolderName(e.target.value)}
               fullWidth
               autoFocus
+              
             />
           </DialogContent>
           <DialogActions>
@@ -419,18 +425,6 @@ const NovelWorkspace: React.FC = () => {
             <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
           </DialogActions>
         </Dialog>
-        {/* フォルダ削除ダイアログ */}
-        <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
-          <DialogTitle>フォルダを削除しますか？</DialogTitle>
-          <DialogContent>
-            <Typography>「{deleteFolderName}」内の作品は「未分類」に移動します。</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
-            <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
-          </DialogActions>
-        </Dialog>
-
         {/* 設定ダイアログ */}
         <SettingsDialog
           open={settingsModalOpen}
