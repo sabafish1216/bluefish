@@ -6,11 +6,7 @@ import {
   Button,
   Typography,
   Paper,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  Chip
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -22,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
-import { addFolder, updateFolder, deleteFolder } from '../features/folders/foldersSlice';
+import { addFolder } from '../features/folders/foldersSlice';
 import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
@@ -52,9 +48,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [previewMode, setPreviewMode] = useState(false);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [editFolderId, setEditFolderId] = useState<string | null>(null);
-  const [editFolderName, setEditFolderName] = useState('');
-  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
 
   // 自動保存フック
   const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -125,37 +118,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
-  // フォルダ編集開始
-  const handleEditFolder = (folderId: string, name: string) => {
-    setEditFolderId(folderId);
-    setEditFolderName(name);
-  };
-  // フォルダ編集確定
-  const handleEditFolderSave = () => {
-    if (editFolderId && editFolderName.trim()) {
-      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
-    }
-    setEditFolderId(null);
-    setEditFolderName('');
-  };
-  // フォルダ削除開始
-  const handleDeleteFolder = (folderId: string) => {
-    setDeleteFolderId(folderId);
-  };
-  // フォルダ削除確定
-  const handleDeleteFolderConfirm = () => {
-    if (deleteFolderId) {
-      // フォルダ削除
-      dispatch(deleteFolder(deleteFolderId));
-      // そのフォルダに属していたnovelを未分類に
-      novels.forEach(novel => {
-        if (novel.folderId === deleteFolderId) {
-          dispatch({ type: 'novels/updateNovel', payload: { ...novel, folderId: '' } });
-        }
-      });
-    }
-    setDeleteFolderId(null);
-  };
 
 
   // 特殊テキスト挿入関数
@@ -277,8 +239,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
                   dispatch(addFolder(newFolder));
                   handleFolderChange(newFolder.id);
                 }}
-                onEdit={handleEditFolder}
-                onDelete={handleDeleteFolder}
               />
             </Box>
             <Box sx={{ flex: 1 }}>
@@ -488,34 +448,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
           )}
         </Box>
       </Paper>
-      {/* フォルダ編集モーダル */}
-      <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>フォルダ名を編集</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="フォルダ名"
-            value={editFolderName}
-            onChange={e => setEditFolderName(e.target.value)}
-            fullWidth
-            autoFocus
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
-          <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
-        </DialogActions>
-      </Dialog>
-      {/* フォルダ削除ダイアログ */}
-      <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>フォルダを削除しますか？</DialogTitle>
-        <DialogContent>
-          <Typography>このフォルダ内の作品は「未分類」に移動します。</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
-          <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
