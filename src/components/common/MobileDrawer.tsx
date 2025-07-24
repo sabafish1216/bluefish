@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Drawer,
   IconButton,
@@ -7,7 +7,13 @@ import {
   Tabs,
   Tab,
   List,
-  useTheme
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -18,7 +24,7 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { DRAWER_CONSTANTS } from '../../constants/drawer';
 import { useExpansionState } from '../../hooks/useExpansionState';
@@ -29,6 +35,7 @@ import EmptyState from './EmptyState';
 import ExpandableSection from './ExpandableSection';
 import ActionButtons from './ActionButtons';
 import packageJson from '../../../package.json';
+import { addFolder, deleteFolder, updateFolder } from '../../features/folders/foldersSlice';
 
 interface MobileDrawerProps {
   open: boolean;
@@ -63,9 +70,15 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const folders = useSelector((state: RootState) => state.folders.folders);
   const tags = useSelector((state: RootState) => state.tags.tags);
   const muiTheme = useTheme();
+  const dispatch = useDispatch();
 
   const { expandedFolders, expandedTags, toggleFolderExpansion, toggleTagExpansion } = useExpansionState();
   const { novelsByFolder, novelsByTag } = useNovelData(novels, folders, tags);
+
+  const [editFolderId, setEditFolderId] = useState<string | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
+  const [deleteFolderName, setDeleteFolderName] = useState('');
 
   // アクションボタンの設定
   const actionButtons = [
@@ -99,6 +112,38 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const getIconSrc = () => {
     const isDarkMode = muiTheme.palette.mode === 'dark';
     return process.env.PUBLIC_URL + (isDarkMode ? '/bluefish_icon_light.png' : '/bluefish_icon.png');
+  };
+
+  // フォルダ編集開始
+  const handleEditFolder = (folderId: string, name: string) => {
+    setEditFolderId(folderId);
+    setEditFolderName(name);
+  };
+  // フォルダ編集確定
+  const handleEditFolderSave = () => {
+    if (editFolderId && editFolderName.trim()) {
+      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+    }
+    setEditFolderId(null);
+    setEditFolderName('');
+  };
+  // フォルダ削除開始
+  const handleDeleteFolder = (folderId: string, name: string) => {
+    setDeleteFolderId(folderId);
+    setDeleteFolderName(name);
+  };
+  // フォルダ削除確定
+  const handleDeleteFolderConfirm = () => {
+    if (deleteFolderId) {
+      dispatch(deleteFolder(deleteFolderId));
+      novels.forEach(novel => {
+        if (novel.folderId === deleteFolderId) {
+          dispatch({ type: 'novels/updateNovel', payload: { ...novel, folderId: '' } });
+        }
+      });
+    }
+    setDeleteFolderId(null);
+    setDeleteFolderName('');
   };
 
   return (
@@ -222,10 +267,15 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
             novelsByFolder.map(({ folder, novels: folderNovels }) => (
               <ExpandableSection
                 key={folder.id}
+                id={folder.id}
                 title={folder.name}
                 count={folderNovels.length}
                 isExpanded={expandedFolders.has(folder.id)}
                 onToggle={() => toggleFolderExpansion(folder.id)}
+                editable
+                deletable
+                onEdit={handleEditFolder}
+                onDelete={handleDeleteFolder}
               >
                 <List>
                   {folderNovels.map((novel) => (
@@ -235,7 +285,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
                       isSelected={selectedNovelId === novel.id}
                       onSelect={() => {
                         onNovelSelect(novel.id);
-                        onClose(); // モバイルでは選択後にドロワーを閉じる
+                        onClose();
                       }}
                       onDelete={onDeleteNovel}
                       showActions={true}
@@ -300,6 +350,35 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
         <div>&copy; Ryuto Kobayashi</div>
         <div>v{packageJson.version}</div>
       </Box>
+
+      {/* フォルダ編集モーダル */}
+      <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>フォルダ名を編集</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="フォルダ名"
+            value={editFolderName}
+            onChange={e => setEditFolderName(e.target.value)}
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
+          <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
+        </DialogActions>
+      </Dialog>
+      {/* フォルダ削除ダイアログ */}
+      <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>フォルダを削除しますか？</DialogTitle>
+        <DialogContent>
+          <Typography>「{deleteFolderName}」内の作品は「未分類」に移動します。</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
+          <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
+        </DialogActions>
+      </Dialog>
     </Drawer>
   );
 };

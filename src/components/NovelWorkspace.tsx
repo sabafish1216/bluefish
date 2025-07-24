@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { RootState } from '../store';
 import { addNovel, deleteNovel } from '../features/novels/novelsSlice';
+import { addFolder, deleteFolder, updateFolder } from '../features/folders/foldersSlice';
 import { DRAWER_CONSTANTS } from '../constants/drawer';
 import { useDrawerResize } from '../hooks/useDrawerResize';
 import { useExpansionState } from '../hooks/useExpansionState';
@@ -59,6 +60,10 @@ const NovelWorkspace: React.FC = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
+  const [editFolderId, setEditFolderId] = useState<string | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
+  const [deleteFolderName, setDeleteFolderName] = useState('');
 
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
@@ -170,6 +175,38 @@ const NovelWorkspace: React.FC = () => {
     setShowAnalytics(false);
     setMobileDrawerOpen(false);
   }, []);
+
+  // フォルダ編集開始
+  const handleEditFolder = (folderId: string, name: string) => {
+    setEditFolderId(folderId);
+    setEditFolderName(name);
+  };
+  // フォルダ編集確定
+  const handleEditFolderSave = () => {
+    if (editFolderId && editFolderName.trim()) {
+      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+    }
+    setEditFolderId(null);
+    setEditFolderName('');
+  };
+  // フォルダ削除開始
+  const handleDeleteFolder = (folderId: string, name: string) => {
+    setDeleteFolderId(folderId);
+    setDeleteFolderName(name);
+  };
+  // フォルダ削除確定
+  const handleDeleteFolderConfirm = () => {
+    if (deleteFolderId) {
+      dispatch(deleteFolder(deleteFolderId));
+      novels.forEach(novel => {
+        if (novel.folderId === deleteFolderId) {
+          dispatch({ type: 'novels/updateNovel', payload: { ...novel, folderId: '' } });
+        }
+      });
+    }
+    setDeleteFolderId(null);
+    setDeleteFolderName('');
+  };
 
   const selectedNovel = selectedNovelId ? novels.find(n => n.id === selectedNovelId) : null;
 
@@ -383,6 +420,35 @@ const NovelWorkspace: React.FC = () => {
           </DialogActions>
         </Dialog>
 
+        {/* フォルダ編集モーダル */}
+        <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
+          <DialogTitle>フォルダ名を編集</DialogTitle>
+          <DialogContent>
+            <TextField
+              label="フォルダ名"
+              value={editFolderName}
+              onChange={e => setEditFolderName(e.target.value)}
+              fullWidth
+              autoFocus
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
+            <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
+          </DialogActions>
+        </Dialog>
+        {/* フォルダ削除ダイアログ */}
+        <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
+          <DialogTitle>フォルダを削除しますか？</DialogTitle>
+          <DialogContent>
+            <Typography>「{deleteFolderName}」内の作品は「未分類」に移動します。</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
+            <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
+          </DialogActions>
+        </Dialog>
+
         {/* 設定ダイアログ */}
         <SettingsDialog
           open={settingsModalOpen}
@@ -528,10 +594,15 @@ const NovelWorkspace: React.FC = () => {
               novelsByFolder.map(({ folder, novels: folderNovels }) => (
                 <ExpandableSection
                   key={folder.id}
+                  id={folder.id}
                   title={folder.name}
                   count={folderNovels.length}
                   isExpanded={expandedFolders.has(folder.id)}
                   onToggle={() => toggleFolderExpansion(folder.id)}
+                  editable
+                  deletable
+                  onEdit={handleEditFolder}
+                  onDelete={handleDeleteFolder}
                 >
                   <List>
                     {folderNovels.map((novel) => (
