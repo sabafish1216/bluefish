@@ -423,13 +423,15 @@ const NovelWorkspace: React.FC = () => {
         {/* フォルダ編集モーダル */}
         <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
           <DialogTitle>フォルダ名を編集</DialogTitle>
-          <DialogContent sx={{ minWidth: 320, px: 2 }}>
+          <DialogContent>
             <TextField
               label="フォルダ名"
               value={editFolderName}
               onChange={e => setEditFolderName(e.target.value)}
               fullWidth
               autoFocus
+              size="small"
+              margin="dense"
             />
           </DialogContent>
           <DialogActions>
@@ -716,6 +718,8 @@ const NovelWorkspace: React.FC = () => {
             onChange={e => setEditFolderName(e.target.value)}
             fullWidth
             autoFocus
+            size="small"
+            margin="dense"
           />
         </DialogContent>
         <DialogActions>
