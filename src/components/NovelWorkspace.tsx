@@ -423,7 +423,7 @@ const NovelWorkspace: React.FC = () => {
         {/* フォルダ編集モーダル */}
         <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
           <DialogTitle>フォルダ名を編集</DialogTitle>
-          <DialogContent>
+          <DialogContent sx={{ minWidth: 320, px: 2 }}>
             <TextField
               label="フォルダ名"
               value={editFolderName}
@@ -709,7 +709,7 @@ const NovelWorkspace: React.FC = () => {
       {/* フォルダ編集モーダル */}
       <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
         <DialogTitle>フォルダ名を編集</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ minWidth: 320, px: 2 }}>
           <TextField
             label="フォルダ名"
             value={editFolderName}
