@@ -7,11 +7,7 @@ import {
   Typography,
   Paper,
   IconButton,
-  Snackbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
+  Snackbar
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -22,7 +18,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PreviewPage from './PreviewPage';
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
-import { addFolder, updateFolder, deleteFolder } from '../features/folders/foldersSlice';
+import { addFolder } from '../features/folders/foldersSlice';
 import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
@@ -58,9 +54,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [toastOpen, setToastOpen] = useState(false);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
   const [previewMode, setPreviewMode] = useState(false);
-  const [editFolderId, setEditFolderId] = useState<string | null>(null);
-  const [editFolderName, setEditFolderName] = useState('');
-  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -153,37 +146,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     debouncedSave({ folderId: newFolderId });
   }, [debouncedSave]);
 
-  // フォルダ編集開始
-  const handleEditFolder = (folderId: string, name: string) => {
-    setEditFolderId(folderId);
-    setEditFolderName(name);
-  };
-  // フォルダ編集確定
-  const handleEditFolderSave = () => {
-    if (editFolderId && editFolderName.trim()) {
-      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
-    }
-    setEditFolderId(null);
-    setEditFolderName('');
-  };
-  // フォルダ削除開始
-  const handleDeleteFolder = (folderId: string) => {
-    setDeleteFolderId(folderId);
-  };
-  // フォルダ削除確定
-  const handleDeleteFolderConfirm = () => {
-    if (deleteFolderId) {
-      // フォルダ削除
-      dispatch(deleteFolder(deleteFolderId));
-      // そのフォルダに属していたnovelを未分類に
-      novels.forEach(novel => {
-        if (novel.folderId === deleteFolderId) {
-          dispatch({ type: 'novels/updateNovel', payload: { ...novel, folderId: '' } });
-        }
-      });
-    }
-    setDeleteFolderId(null);
-  };
 
 
   const insertSpecialText = useCallback((text: string, selectText?: string, replaceText?: string) => {
@@ -264,8 +226,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
           dispatch(addFolder(newFolder));
           handleFolderChange(newFolder.id);
         }}
-        onEdit={handleEditFolder}
-        onDelete={handleDeleteFolder}
         size="small"
       />
       <TagSelector
@@ -415,7 +375,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               gap: 0.5,
               pt: 2,
               m: 0,
-              height: 20,
+              height: 28,
               borderTop: 1,
               borderColor: 'divider',
               bgcolor: (theme) => theme.palette.background.paper,
@@ -471,34 +431,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
           message="保存が完了しました"
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         />
-        {/* フォルダ編集モーダル */}
-        <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
-          <DialogTitle>フォルダ名を編集</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="フォルダ名"
-              value={editFolderName}
-              onChange={e => setEditFolderName(e.target.value)}
-              fullWidth
-              autoFocus
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
-            <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
-          </DialogActions>
-        </Dialog>
-        {/* フォルダ削除ダイアログ */}
-        <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
-          <DialogTitle>フォルダを削除しますか？</DialogTitle>
-          <DialogContent>
-            <Typography>このフォルダ内の作品は「未分類」に移動します。</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
-            <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
-          </DialogActions>
-        </Dialog>
       </Box>
     );
   }
