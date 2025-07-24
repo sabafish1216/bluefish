@@ -706,6 +706,35 @@ const NovelWorkspace: React.FC = () => {
         )}
       </Box>
 
+      {/* フォルダ編集モーダル */}
+      <Dialog open={!!editFolderId} onClose={() => setEditFolderId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>フォルダ名を編集</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="フォルダ名"
+            value={editFolderName}
+            onChange={e => setEditFolderName(e.target.value)}
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
+          <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
+        </DialogActions>
+      </Dialog>
+      {/* フォルダ削除ダイアログ */}
+      <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>フォルダを削除しますか？</DialogTitle>
+        <DialogContent>
+          <Typography>「{deleteFolderName}」内の作品は「未分類」に移動します。</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteFolderId(null)}>キャンセル</Button>
+          <Button color="error" onClick={handleDeleteFolderConfirm}>削除</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* 設定ダイアログ */}
       <SettingsDialog
         open={settingsModalOpen}
