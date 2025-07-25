@@ -35,7 +35,7 @@ import EmptyState from './EmptyState';
 import ExpandableSection from './ExpandableSection';
 import ActionButtons from './ActionButtons';
 import packageJson from '../../../package.json';
-import { addFolder, deleteFolder, updateFolder } from '../../features/folders/foldersSlice';
+import { deleteFolder, updateFolder } from '../../features/folders/foldersSlice';
 
 interface MobileDrawerProps {
   open: boolean;
@@ -361,6 +361,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
             onChange={e => setEditFolderName(e.target.value)}
             fullWidth
             autoFocus
+            sx={{ mt: 2 }}
           />
         </DialogContent>
         <DialogActions>

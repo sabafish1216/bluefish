@@ -166,9 +166,8 @@ const NovelWorkspace: React.FC = () => {
       dispatch(addFolder(newFolder));
       setNewFolderName("");
       setFolderModalOpen(false);
-      setSelectedFolderId && setSelectedFolderId(newFolder.id);
     }
-  }, [newFolderName, dispatch, setSelectedFolderId]);
+  }, [newFolderName, dispatch]);
 
   const handleBackToList = useCallback(() => {
     setSelectedNovelId(null);

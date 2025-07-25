@@ -43,15 +43,17 @@ const ExpandableSection: React.FC<ExpandableSectionProps> = ({
           <Typography variant="subtitle2" sx={{ mr: 1 }}>
             {title} {count !== undefined && `(${count})`}
           </Typography>
+        </Box>
+        <Box>
           {editable && onEdit && id && (
-            <IconButton size="small" sx={{ mr: 0.5 }} onClick={e => { e.stopPropagation(); onEdit(id, title); }}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          )}
-          {deletable && onDelete && id && (
-            <IconButton size="small" sx={{ mr: 0.5 }} onClick={e => { e.stopPropagation(); onDelete(id, title); }}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
+              <IconButton size="small" sx={{ mr: 0.5 }} onClick={e => { e.stopPropagation(); onEdit(id, title); }}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            )}
+            {deletable && onDelete && id && (
+              <IconButton size="small" sx={{ mr: 0.5 }} onClick={e => { e.stopPropagation(); onDelete(id, title); }}>
+                <DeleteIcon fontSize="small" />
+              </IconButton>
           )}
         </Box>
         <Box onClick={e => { e.stopPropagation(); onToggle(); }} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
