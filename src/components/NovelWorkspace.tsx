@@ -407,7 +407,7 @@ const NovelWorkspace: React.FC = () => {
         />
 
         {/* フォルダ作成モーダル */}
-        <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="xs" fullWidth>
           <DialogTitle>新しいフォルダ</DialogTitle>
           <DialogContent sx={{ minHeight: 100, pt: 3, pb: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <TextField
@@ -492,7 +492,7 @@ const NovelWorkspace: React.FC = () => {
           {/* タイトル下に4つのFabボタンを横並びで配置 */}
           <ActionButtons buttons={actionButtons} />
           {/* フォルダ作成モーダル */}
-          <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="sm" fullWidth sx={{ '& .MuiDialog-paper': { minWidth: 400, maxWidth: 600 } }}>
+          <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="xs" fullWidth sx={{ '& .MuiDialog-paper': { minWidth: 400, maxWidth: 600 } }}>
             <DialogTitle>新しいフォルダ</DialogTitle>
             <DialogContent sx={{ minHeight: 100, pt: 3, pb: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
               <TextField
@@ -579,20 +579,26 @@ const NovelWorkspace: React.FC = () => {
                   onEdit={handleEditFolder}
                   onDelete={handleDeleteFolder}
                 >
-                  <List>
-                    {folderNovels.map((novel) => (
-                      <NovelListItem
-                        key={novel.id}
-                        novel={novel}
-                        isSelected={selectedNovelId === novel.id}
-                        onSelect={() => handleNovelSelect(novel.id)}
-                        onDelete={handleDeleteNovel}
-                        showActions={true}
-                        drawerWidth={drawerWidth}
-                        tags={tags}
-                      />
-                    ))}
-                  </List>
+                  {folderNovels.length === 0 ? (
+                    <Typography sx={{ p: 2, color: 'text.secondary', textAlign: 'center' }}>
+                      このフォルダには作品がありません
+                    </Typography>
+                  ) : (
+                    <List>
+                      {folderNovels.map((novel) => (
+                        <NovelListItem
+                          key={novel.id}
+                          novel={novel}
+                          isSelected={selectedNovelId === novel.id}
+                          onSelect={() => handleNovelSelect(novel.id)}
+                          onDelete={handleDeleteNovel}
+                          showActions={true}
+                          drawerWidth={drawerWidth}
+                          tags={tags}
+                        />
+                      ))}
+                    </List>
+                  )}
                 </ExpandableSection>
               ))
             ) : (
