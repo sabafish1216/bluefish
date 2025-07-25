@@ -272,8 +272,8 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 count={folderNovels.length}
                 isExpanded={expandedFolders.has(folder.id)}
                 onToggle={() => toggleFolderExpansion(folder.id)}
-                editable
-                deletable
+                editable={folder.id !== 'uncategorized' && folder.name !== '未分類'}
+                deletable={folder.id !== 'uncategorized' && folder.name !== '未分類'}
                 onEdit={handleEditFolder}
                 onDelete={handleDeleteFolder}
               >
