@@ -17,6 +17,7 @@ export function useGoogleDriveSync() {
   const dispatch = useDispatch();
   const { syncNovelData, getNovelData, signIn, checkAuthStatus } = useGoogleDriveGIS();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitializedRef = useRef(false);
 
   // Reduxの状態を取得
   const novels = useSelector((state: RootState) => state.novels.novels);
@@ -166,8 +167,16 @@ export function useGoogleDriveSync() {
 
   // アプリ起動時の認証状態チェックとデータ同期
   useEffect(() => {
+    if (hasInitializedRef.current) {
+      console.log('useEffect already initialized, skipping...');
+      return;
+    }
+
     const checkAuthAndSync = async () => {
       try {
+        hasInitializedRef.current = true;
+        console.log('useEffect 実行開始');
+        
         const isAuthenticated = await checkAuthStatus();
         if (isAuthenticated && !syncStatus.isSignedIn) {
           console.log('リロード後 - 認証状態を復元');
@@ -197,7 +206,7 @@ export function useGoogleDriveSync() {
     };
 
     checkAuthAndSync();
-  }, [syncStatus.isSignedIn, checkAuthStatus, dispatch]); // syncFromDrive, startAutoSyncを依存配列から削除
+  }, []); // 空の依存配列で初回のみ実行
 
   return {
     syncStatus,
