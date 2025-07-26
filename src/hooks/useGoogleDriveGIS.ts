@@ -215,11 +215,30 @@ export function useGoogleDriveGIS() {
 
   // ファイル検索（名前で検索）
   const findFileByName = async (fileName: string) => {
-    const res = await window.gapi.client.drive.files.list({
-      q: `name='${fileName}'`,
-      fields: 'files(id, name, modifiedTime)',
-    });
-    return res.result.files[0] || null;
+    console.log('ファイル検索開始:', fileName);
+    
+    try {
+      const res = await window.gapi.client.drive.files.list({
+        q: `name='${fileName}'`,
+        fields: 'files(id, name, modifiedTime, size)',
+        spaces: 'drive',
+        pageSize: 10
+      });
+      
+      console.log('検索結果:', res.result);
+      console.log('見つかったファイル数:', res.result.files?.length || 0);
+      
+      if (res.result.files && res.result.files.length > 0) {
+        const file = res.result.files[0];
+        console.log('選択されたファイル:', file);
+        return file;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('ファイル検索エラー:', error);
+      return null;
+    }
   };
 
   // ファイル更新（既存ファイルの内容を更新）
@@ -256,28 +275,62 @@ export function useGoogleDriveGIS() {
     const fileName = 'novel-writer-data.json';
     const content = JSON.stringify(novelData, null, 2);
     
+    console.log('syncNovelData 開始:', {
+      fileName,
+      dataSize: content.length,
+      novelCount: novelData.novels?.length || 0,
+      folderCount: novelData.folders?.length || 0,
+      tagCount: novelData.tags?.length || 0
+    });
+    
     // 既存ファイルを検索
     const existingFile = await findFileByName(fileName);
+    console.log('既存ファイル検索結果:', existingFile);
     
     if (existingFile) {
       // 既存ファイルを更新
-      return await updateFile(existingFile.id, content);
+      console.log('既存ファイルを更新:', existingFile.id);
+      const result = await updateFile(existingFile.id, content);
+      console.log('ファイル更新完了:', result);
+      return result;
     } else {
       // 新規ファイルを作成
-      return await uploadFile(fileName, content);
+      console.log('新規ファイルを作成');
+      const result = await uploadFile(fileName, content);
+      console.log('ファイル作成完了:', result);
+      return result;
     }
   };
 
   // Google Driveから小説データを取得
   const getNovelData = async () => {
     const fileName = 'novel-writer-data.json';
+    console.log('getNovelData 開始:', fileName);
+    
     const existingFile = await findFileByName(fileName);
+    console.log('ファイル検索結果:', existingFile);
     
     if (existingFile) {
+      console.log('ファイルをダウンロード:', existingFile.id);
       const content = await downloadFile(existingFile.id);
-      return JSON.parse(content);
+      console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+      
+      try {
+        const data = JSON.parse(content);
+        console.log('データ解析完了:', {
+          novelCount: data.novels?.length || 0,
+          folderCount: data.folders?.length || 0,
+          tagCount: data.tags?.length || 0
+        });
+        return data;
+      } catch (parseError) {
+        console.error('JSON解析エラー:', parseError);
+        console.log('生のコンテンツ:', content.substring(0, 200) + '...');
+        return null;
+      }
     }
     
+    console.log('ファイルが存在しません');
     return null; // ファイルが存在しない場合
   };
 
