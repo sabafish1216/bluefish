@@ -1,7 +1,7 @@
 /**
  * アクションボタンコンポーネント
  * @author sabafish1028
- * @version 0.2.0
+ * @version 1.0.0-beta
  * @since 2025-07-20
  * @updated 2025-07-20
  * @description アクションボタンのコンポーネント
