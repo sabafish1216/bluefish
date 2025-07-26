@@ -73,8 +73,32 @@ export function useGoogleDriveGIS() {
   const checkAuthStatus = async () => {
     try {
       await initGapi();
-      const token = window.gapi.client.getToken();
+      let token = window.gapi.client.getToken();
       console.log('認証状態チェック - Token:', token ? '存在' : 'なし');
+      
+      // トークンが存在しない場合、ローカルストレージから復元を試行
+      if (!token || !token.access_token) {
+        const savedTokenData = localStorage.getItem('google_drive_token');
+        if (savedTokenData) {
+          try {
+            const tokenData = JSON.parse(savedTokenData);
+            const now = Date.now();
+            
+            // トークンの有効期限をチェック
+            if (tokenData.expires_at > now) {
+              console.log('保存されたトークンを復元');
+              window.gapi.client.setToken({ access_token: tokenData.access_token });
+              token = window.gapi.client.getToken();
+            } else {
+              console.log('保存されたトークンが期限切れ');
+              localStorage.removeItem('google_drive_token');
+            }
+          } catch (parseError) {
+            console.error('トークンデータの解析エラー:', parseError);
+            localStorage.removeItem('google_drive_token');
+          }
+        }
+      }
       
       if (!token || !token.access_token) {
         return false;
@@ -92,6 +116,7 @@ export function useGoogleDriveGIS() {
         console.log('トークン有効性チェック - 失敗（再認証が必要）:', apiError);
         // トークンをクリア
         window.gapi.client.setToken(null);
+        localStorage.removeItem('google_drive_token');
         return false;
       }
     } catch (error) {
@@ -108,6 +133,16 @@ export function useGoogleDriveGIS() {
       
       tokenClientRef.current.callback = (tokenResponse: any) => {
         try {
+          // アクセストークンとリフレッシュトークンを保存
+          const tokenData = {
+            access_token: tokenResponse.access_token,
+            refresh_token: tokenResponse.refresh_token,
+            expires_at: Date.now() + (tokenResponse.expires_in * 1000)
+          };
+          
+          // ローカルストレージに保存（セキュリティ上の注意が必要）
+          localStorage.setItem('google_drive_token', JSON.stringify(tokenData));
+          
           window.gapi.client.setToken({ access_token: tokenResponse.access_token });
           onSignedIn();
         } catch (tokenError) {
@@ -246,8 +281,20 @@ export function useGoogleDriveGIS() {
     return null; // ファイルが存在しない場合
   };
 
+  // サインアウト
+  const signOut = () => {
+    try {
+      window.gapi.client.setToken(null);
+      localStorage.removeItem('google_drive_token');
+      console.log('サインアウト完了');
+    } catch (error) {
+      console.error('サインアウトエラー:', error);
+    }
+  };
+
   return { 
     signIn, 
+    signOut,
     checkAuthStatus,
     listFiles, 
     uploadFile, 
