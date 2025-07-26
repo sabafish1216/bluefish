@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { Analytics } from '@vercel/analytics/react';
 import NovelWorkspace from './components/NovelWorkspace';
 import { useSelector } from 'react-redux';
 import { RootState } from './store';
@@ -145,6 +146,7 @@ const App: React.FC = () => {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <ThemedApp />
+        <Analytics />
       </PersistGate>
     </Provider>
   );
