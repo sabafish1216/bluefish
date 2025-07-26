@@ -61,6 +61,17 @@ export function useGoogleDriveSync() {
   const syncFromDrive = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
     console.log('syncFromDrive 実行開始:', new Date().toLocaleString());
+    
+    // 認証状態を再確認
+    const isAuthenticated = await checkAuthStatus();
+    if (!isAuthenticated) {
+      console.log('認証状態が無効のため、同期をスキップ');
+      dispatch(setIsSyncing(false));
+      dispatch(setIsSignedIn(false));
+      dispatch(setError('認証が必要です。Google Driveにサインインしてください。'));
+      return;
+    }
+    
     try {
       dispatch(setIsSyncing(true));
       dispatch(setError(null));
@@ -234,6 +245,8 @@ export function useGoogleDriveSync() {
           }
         } else {
           console.log('認証されていません - 手動サインインが必要');
+          // 認証されていない場合は同期をスキップ
+          return;
         }
       } catch (error) {
         console.error('認証状態チェックエラー:', error);
