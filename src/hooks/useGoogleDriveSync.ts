@@ -166,27 +166,37 @@ export function useGoogleDriveSync() {
         window.gapi.client.setToken(null);
       }
       
-      await signIn(() => {
+      await signIn(async () => {
         dispatch(setIsSignedIn(true));
         dispatch(setError(null)); // エラーをクリア
         
         // 保留中の同期データがあるかチェック
         const pendingSyncData = localStorage.getItem('pending_sync_data');
-        if (pendingSyncData) {
-          console.log('保留中の同期データを同期');
+        const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
+        
+        if (pendingSyncData && pendingSyncTimestamp) {
+          console.log('保留中の同期データを確認');
           try {
-            const data = JSON.parse(pendingSyncData);
-            // 保留データをGoogle Driveに同期
-            syncNovelData(data).then(() => {
-              console.log('保留データの同期完了');
-              localStorage.removeItem('pending_sync_data');
-              localStorage.removeItem('pending_sync_timestamp');
-            });
+            const pendingData = JSON.parse(pendingSyncData);
+            const pendingTime = parseInt(pendingSyncTimestamp);
+            
+            // 保留データを先にGoogle Driveに同期（新しいデータを優先）
+            console.log('保留データをGoogle Driveに同期（新しいデータを優先）');
+            await syncNovelData(pendingData);
+            console.log('保留データの同期完了');
+            
+            // 保留データを削除
+            localStorage.removeItem('pending_sync_data');
+            localStorage.removeItem('pending_sync_timestamp');
           } catch (error) {
-            console.error('保留データの同期エラー:', error);
+            console.error('保留データの処理エラー:', error);
+            // エラーの場合は保留データを削除
+            localStorage.removeItem('pending_sync_data');
+            localStorage.removeItem('pending_sync_timestamp');
           }
         }
         
+        // その後でGoogle Driveからデータを取得
         syncFromDrive();
         startAutoSync();
       });
@@ -274,6 +284,30 @@ export function useGoogleDriveSync() {
         if (isAuthenticated && !syncStatus.isSignedIn) {
           console.log('リロード後 - 認証状態を復元');
           dispatch(setIsSignedIn(true));
+          
+          // 保留中の同期データがあるかチェック
+          const pendingSyncData = localStorage.getItem('pending_sync_data');
+          const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
+          
+          if (pendingSyncData && pendingSyncTimestamp) {
+            console.log('保留中の同期データを確認（リロード後）');
+            try {
+              const pendingData = JSON.parse(pendingSyncData);
+              // 保留データを先にGoogle Driveに同期（新しいデータを優先）
+              console.log('保留データをGoogle Driveに同期（新しいデータを優先）');
+              await syncNovelData(pendingData);
+              console.log('保留データの同期完了');
+              
+              // 保留データを削除
+              localStorage.removeItem('pending_sync_data');
+              localStorage.removeItem('pending_sync_timestamp');
+            } catch (error) {
+              console.error('保留データの処理エラー:', error);
+              localStorage.removeItem('pending_sync_data');
+              localStorage.removeItem('pending_sync_timestamp');
+            }
+          }
+          
           // エラーが発生した場合の処理を追加
           try {
             await syncFromDrive();
