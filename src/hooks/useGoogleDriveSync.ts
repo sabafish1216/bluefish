@@ -138,16 +138,16 @@ export function useGoogleDriveSync() {
     await syncToDrive();
   }, [syncToDrive]);
 
-  // 60分ごとの自動同期を開始
+  // 5分ごとの自動同期を開始
   const startAutoSync = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    console.log('自動同期を開始 - 60分間隔');
+    console.log('自動同期を開始 - 5分間隔');
     intervalRef.current = setInterval(() => {
-      console.log('自動同期を実行 - 60分間隔');
+      console.log('自動同期を実行 - 5分間隔');
       syncToDrive();
-    }, 60 * 60 * 1000); // 60分
+    }, 5 * 60 * 1000); // 5分
   }, [syncToDrive]);
 
   // 自動同期を停止
@@ -169,6 +169,24 @@ export function useGoogleDriveSync() {
       await signIn(() => {
         dispatch(setIsSignedIn(true));
         dispatch(setError(null)); // エラーをクリア
+        
+        // 保留中の同期データがあるかチェック
+        const pendingSyncData = localStorage.getItem('pending_sync_data');
+        if (pendingSyncData) {
+          console.log('保留中の同期データを同期');
+          try {
+            const data = JSON.parse(pendingSyncData);
+            // 保留データをGoogle Driveに同期
+            syncNovelData(data).then(() => {
+              console.log('保留データの同期完了');
+              localStorage.removeItem('pending_sync_data');
+              localStorage.removeItem('pending_sync_timestamp');
+            });
+          } catch (error) {
+            console.error('保留データの同期エラー:', error);
+          }
+        }
+        
         syncFromDrive();
         startAutoSync();
       });
@@ -192,15 +210,46 @@ export function useGoogleDriveSync() {
 
   // アプリ終了時の同期
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (syncStatus.isSignedIn) {
-        // 注意: beforeunloadでは非同期処理が完了しない可能性がある
         console.log('アプリ終了 - 同期を実行');
+        
+        // 同期的な同期処理（非同期処理は完了しないため）
+        try {
+          // 現在のデータを取得
+          const currentData = getAllData();
+          const content = JSON.stringify(currentData, null, 2);
+          
+          // ローカルストレージに一時保存（次回起動時に同期）
+          localStorage.setItem('pending_sync_data', content);
+          localStorage.setItem('pending_sync_timestamp', Date.now().toString());
+          
+          console.log('アプリ終了時の同期データを保存:', {
+            dataSize: content.length,
+            novelCount: currentData.novels?.length || 0
+          });
+        } catch (error) {
+          console.error('アプリ終了時の同期エラー:', error);
+        }
       }
     };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && syncStatus.isSignedIn) {
+        console.log('ページ非表示 - 同期を実行');
+        // ページが非表示になった時も同期
+        syncToDrive();
+      }
+    };
+    
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [syncStatus.isSignedIn]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [syncStatus.isSignedIn, getAllData, syncToDrive]);
 
   // コンポーネントアンマウント時に自動同期を停止
   useEffect(() => {
@@ -245,6 +294,30 @@ export function useGoogleDriveSync() {
           }
         } else {
           console.log('認証されていません - 手動サインインが必要');
+          
+          // 保留中の同期データがあるかチェック
+          const pendingSyncData = localStorage.getItem('pending_sync_data');
+          const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
+          
+          if (pendingSyncData && pendingSyncTimestamp) {
+            const timestamp = parseInt(pendingSyncTimestamp);
+            const now = Date.now();
+            const timeDiff = now - timestamp;
+            
+            // 24時間以内の保留データがあれば通知
+            if (timeDiff < 24 * 60 * 60 * 1000) {
+              console.log('保留中の同期データを発見:', {
+                dataSize: pendingSyncData.length,
+                age: Math.round(timeDiff / 1000 / 60) + '分前'
+              });
+              dispatch(setError('前回のセッションで同期されていないデータがあります。サインインして同期してください。'));
+            } else {
+              // 24時間以上古いデータは削除
+              localStorage.removeItem('pending_sync_data');
+              localStorage.removeItem('pending_sync_timestamp');
+            }
+          }
+          
           // 認証されていない場合は同期をスキップ
           return;
         }
