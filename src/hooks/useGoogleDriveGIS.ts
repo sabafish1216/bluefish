@@ -69,13 +69,31 @@ export function useGoogleDriveGIS() {
     console.log('Token client initialized');
   };
 
-  // 認証状態をチェック
+  // 認証状態をチェック（トークンの有効性も確認）
   const checkAuthStatus = async () => {
     try {
       await initGapi();
       const token = window.gapi.client.getToken();
       console.log('認証状態チェック - Token:', token ? '存在' : 'なし');
-      return token && token.access_token;
+      
+      if (!token || !token.access_token) {
+        return false;
+      }
+
+      // トークンの有効性をテスト（簡単なAPI呼び出し）
+      try {
+        await window.gapi.client.drive.files.list({
+          pageSize: 1,
+          fields: 'files(id)',
+        });
+        console.log('トークン有効性チェック - 成功');
+        return true;
+      } catch (apiError) {
+        console.log('トークン有効性チェック - 失敗（再認証が必要）:', apiError);
+        // トークンをクリア
+        window.gapi.client.setToken(null);
+        return false;
+      }
     } catch (error) {
       console.error('認証状態チェックエラー:', error);
       return false;

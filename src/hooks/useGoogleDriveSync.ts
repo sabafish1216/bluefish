@@ -133,8 +133,14 @@ export function useGoogleDriveSync() {
   // Google Driveにサインイン
   const signInToDrive = useCallback(async () => {
     try {
+      // 既存のトークンをクリア
+      if (window.gapi && window.gapi.client) {
+        window.gapi.client.setToken(null);
+      }
+      
       await signIn(() => {
         dispatch(setIsSignedIn(true));
+        dispatch(setError(null)); // エラーをクリア
         syncFromDrive();
         startAutoSync();
       });
@@ -198,7 +204,7 @@ export function useGoogleDriveSync() {
           } catch (syncError) {
             console.error('同期エラー - 認証状態をリセット:', syncError);
             dispatch(setIsSignedIn(false));
-            dispatch(setError('同期に失敗しました。再度サインインしてください。'));
+            dispatch(setError('認証が期限切れです。再度サインインしてください。'));
           }
         } else if (syncStatus.isSignedIn) {
           console.log('アプリ起動 - Google Driveからデータを取得');
@@ -207,8 +213,10 @@ export function useGoogleDriveSync() {
           } catch (syncError) {
             console.error('同期エラー - 認証状態をリセット:', syncError);
             dispatch(setIsSignedIn(false));
-            dispatch(setError('同期に失敗しました。再度サインインしてください。'));
+            dispatch(setError('認証が期限切れです。再度サインインしてください。'));
           }
+        } else {
+          console.log('認証されていません - 手動サインインが必要');
         }
       } catch (error) {
         console.error('認証状態チェックエラー:', error);
