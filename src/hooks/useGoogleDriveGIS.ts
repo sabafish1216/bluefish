@@ -12,15 +12,26 @@ declare global {
  */
 export function useGoogleDriveGIS() {
   const tokenClientRef = useRef<any>(null);
+  const isInitializedRef = useRef<boolean>(false);
 
-  // デバッグ用: 環境変数の確認
-  console.log('Google Drive GIS - Environment variables:');
-  console.log('API Key:', process.env.REACT_APP_GOOGLE_API_KEY ? 'Set' : 'Not set');
-  console.log('Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+  // デバッグ用: 環境変数の確認（初回のみ）
+  if (!isInitializedRef.current) {
+    console.log('Google Drive GIS - Environment variables:');
+    console.log('API Key:', process.env.REACT_APP_GOOGLE_API_KEY ? 'Set' : 'Not set');
+    console.log('Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+    isInitializedRef.current = true;
+  }
 
   // gapiの初期化
   const initGapi = async () => {
     return new Promise<void>((resolve, reject) => {
+      // 既に初期化済みの場合はスキップ
+      if (window.gapi && window.gapi.client && window.gapi.client.drive) {
+        console.log('gapi already initialized, skipping...');
+        resolve();
+        return;
+      }
+
       console.log('Initializing gapi...');
       window.gapi.load('client', {
         callback: async () => {
