@@ -59,6 +59,7 @@ export function useGoogleDriveSync() {
   // Google Driveからデータを取得
   const syncFromDrive = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
+    console.log('syncFromDrive 実行開始:', new Date().toLocaleString());
     try {
       dispatch(setIsSyncing(true));
       dispatch(setError(null));
@@ -84,7 +85,7 @@ export function useGoogleDriveSync() {
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
       dispatch(setError(null));
-      console.log('Google Driveからの取得完了');
+      console.log('Google Driveからの取得完了:', new Date().toLocaleString());
     } catch (error) {
       console.error('Google Driveからの取得エラー:', error);
       dispatch(setIsSyncing(false));
@@ -196,7 +197,7 @@ export function useGoogleDriveSync() {
     };
 
     checkAuthAndSync();
-  }, [syncStatus.isSignedIn, syncFromDrive, startAutoSync, checkAuthStatus, dispatch]);
+  }, [syncStatus.isSignedIn, checkAuthStatus, dispatch]); // syncFromDrive, startAutoSyncを依存配列から削除
 
   return {
     syncStatus,
