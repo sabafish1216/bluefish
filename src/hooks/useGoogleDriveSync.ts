@@ -15,7 +15,7 @@ import { setSettings } from '../features/settings/settingsSlice';
 
 export function useGoogleDriveSync() {
   const dispatch = useDispatch();
-  const { syncNovelData, getNovelData, signIn } = useGoogleDriveGIS();
+  const { syncNovelData, getNovelData, signIn, checkAuthStatus } = useGoogleDriveGIS();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reduxの状態を取得
@@ -96,14 +96,14 @@ export function useGoogleDriveSync() {
     await syncToDrive();
   }, [syncToDrive]);
 
-  // 5分ごとの自動同期を開始
+  // 30分ごとの自動同期を開始
   const startAutoSync = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
     intervalRef.current = setInterval(() => {
       syncToDrive();
-    }, 5 * 60 * 1000); // 5分
+    }, 30 * 60 * 1000); // 30分
   }, [syncToDrive]);
 
   // 自動同期を停止
@@ -159,13 +159,27 @@ export function useGoogleDriveSync() {
     };
   }, [stopAutoSync]);
 
-  // アプリ起動時のデータ同期
+  // アプリ起動時の認証状態チェックとデータ同期
   useEffect(() => {
-    if (syncStatus.isSignedIn) {
-      console.log('アプリ起動 - Google Driveからデータを取得');
-      syncFromDrive();
-    }
-  }, [syncStatus.isSignedIn, syncFromDrive]);
+    const checkAuthAndSync = async () => {
+      try {
+        const isAuthenticated = await checkAuthStatus();
+        if (isAuthenticated && !syncStatus.isSignedIn) {
+          console.log('リロード後 - 認証状態を復元');
+          dispatch(setIsSignedIn(true));
+          syncFromDrive();
+          startAutoSync();
+        } else if (syncStatus.isSignedIn) {
+          console.log('アプリ起動 - Google Driveからデータを取得');
+          syncFromDrive();
+        }
+      } catch (error) {
+        console.error('認証状態チェックエラー:', error);
+      }
+    };
+
+    checkAuthAndSync();
+  }, [syncStatus.isSignedIn, syncFromDrive, startAutoSync, checkAuthStatus, dispatch]);
 
   return {
     syncStatus,

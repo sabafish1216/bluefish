@@ -56,6 +56,18 @@ export function useGoogleDriveGIS() {
     console.log('Token client initialized');
   };
 
+  // 認証状態をチェック
+  const checkAuthStatus = async () => {
+    try {
+      await initGapi();
+      const token = window.gapi.client.getToken();
+      return token && token.access_token;
+    } catch (error) {
+      console.error('認証状態チェックエラー:', error);
+      return false;
+    }
+  };
+
   // サインイン（コールバック方式）
   const signIn = async (onSignedIn: () => void) => {
     await initGapi();
@@ -185,6 +197,7 @@ export function useGoogleDriveGIS() {
 
   return { 
     signIn, 
+    checkAuthStatus,
     listFiles, 
     uploadFile, 
     downloadFile, 
