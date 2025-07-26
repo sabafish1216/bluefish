@@ -28,6 +28,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { setFontSize, setWordCountDisplay } from '../../features/settings/settingsSlice';
 import { toggleTheme } from '../../features/theme/themeSlice';
+import { clearNovels } from '../../features/novels/novelsSlice';
+import { clearFolders } from '../../features/folders/foldersSlice';
+import { clearTags } from '../../features/tags/tagsSlice';
+import { clearSettings } from '../../features/settings/settingsSlice';
+import { resetSyncState } from '../../features/googleDriveSync/googleDriveSyncSlice';
 // import { useGoogleDriveSync } from '../../hooks/useGoogleDriveSync';
 
 const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
@@ -46,6 +51,19 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
 
   const handleThemeToggle = () => {
     dispatch(toggleTheme());
+  };
+
+  const handleResetAllData = () => {
+    if (window.confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
+      dispatch(clearNovels());
+      dispatch(clearFolders());
+      dispatch(clearTags());
+      dispatch(clearSettings());
+      dispatch(resetSyncState());
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    }
   };
 
   // const handleGoogleDriveSignIn = async () => {
@@ -115,6 +133,22 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
             Google Drive同期機能は現在メンテナンス中です。
+          </Typography>
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        {/* データリセット */}
+        <Typography variant="subtitle1" gutterBottom>データ管理</Typography>
+        <Box sx={{ mb: 2 }}>
+          <Button 
+            variant="outlined" 
+            color="error" 
+            onClick={handleResetAllData}
+            sx={{ mb: 2 }}
+          >
+            すべてのデータをリセット
+          </Button>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            小説、フォルダ、タグ、設定、Google Drive同期状態をすべてリセットします。
           </Typography>
         </Box>
       </DialogContent>

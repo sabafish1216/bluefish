@@ -28,8 +28,11 @@ const tagsSlice = createSlice({
     setTags: (state, action: PayloadAction<Tag[]>) => {
       state.tags = action.payload;
     },
+    clearTags: (state) => {
+      state.tags = [];
+    },
   },
 });
 
-export const { addTag, deleteTag, setTags } = tagsSlice.actions;
+export const { addTag, deleteTag, setTags, clearTags } = tagsSlice.actions;
 export default tagsSlice.reducer; 

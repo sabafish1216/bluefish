@@ -35,8 +35,11 @@ const novelsSlice = createSlice({
     setNovels: (state, action: PayloadAction<Novel[]>) => {
       state.novels = action.payload;
     },
+    clearNovels: (state) => {
+      state.novels = [];
+    },
   },
 });
 
-export const { addNovel, updateNovel, deleteNovel, setNovels } = novelsSlice.actions;
+export const { addNovel, updateNovel, deleteNovel, setNovels, clearNovels } = novelsSlice.actions;
 export default novelsSlice.reducer; 
