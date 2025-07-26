@@ -2,7 +2,6 @@
   "name": "bluefish",
   "version": "0.2.0",
   "private": true,
-  "homepage": "https://sabafish1216.github.io/bluefish",
   "license": "MIT",
   "author": "Ryuto Kobayashi",
   "dependencies": {
