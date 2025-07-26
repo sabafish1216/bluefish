@@ -33,10 +33,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "app/api/analytics/**/*.ts": {
-      "maxDuration": 10
-    }
-  }
+  ]
 } 
