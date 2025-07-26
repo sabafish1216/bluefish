@@ -39,6 +39,7 @@ export function useGoogleDriveSync() {
   // Google Driveに同期
   const syncToDrive = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
+    console.log('Google Drive同期開始:', new Date().toLocaleString());
     try {
       dispatch(setIsSyncing(true));
       dispatch(setError(null));
@@ -47,7 +48,7 @@ export function useGoogleDriveSync() {
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
       dispatch(setError(null));
-      console.log('Google Drive同期完了');
+      console.log('Google Drive同期完了:', new Date().toLocaleString());
     } catch (error) {
       console.error('Google Drive同期エラー:', error);
       dispatch(setIsSyncing(false));
@@ -93,17 +94,20 @@ export function useGoogleDriveSync() {
 
   // 手動同期
   const manualSync = useCallback(async () => {
+    console.log('手動同期を実行:', new Date().toLocaleString());
     await syncToDrive();
   }, [syncToDrive]);
 
-  // 30分ごとの自動同期を開始
+  // 60分ごとの自動同期を開始
   const startAutoSync = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    console.log('自動同期を開始 - 60分間隔');
     intervalRef.current = setInterval(() => {
+      console.log('自動同期を実行 - 60分間隔');
       syncToDrive();
-    }, 30 * 60 * 1000); // 30分
+    }, 60 * 60 * 1000); // 60分
   }, [syncToDrive]);
 
   // 自動同期を停止

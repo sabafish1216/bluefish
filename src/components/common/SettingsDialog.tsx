@@ -167,7 +167,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
             </Box>
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            Google Driveにサインインすると、30分ごとに自動同期されます。
+            Google Driveにサインインすると、60分ごとに自動同期されます。
             複数端末でデータを共有できます。
           </Typography>
         </Box>
