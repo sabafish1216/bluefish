@@ -19,6 +19,8 @@ export function useGoogleDriveGIS() {
     console.log('Google Drive GIS - Environment variables:');
     console.log('API Key:', process.env.REACT_APP_GOOGLE_API_KEY ? 'Set' : 'Not set');
     console.log('Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+    console.log('Current URL:', window.location.href);
+    console.log('Environment:', process.env.NODE_ENV);
     isInitializedRef.current = true;
   }
 

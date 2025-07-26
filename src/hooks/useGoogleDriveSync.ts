@@ -90,7 +90,17 @@ export function useGoogleDriveSync() {
     } catch (error) {
       console.error('Google Driveからの取得エラー:', error);
       dispatch(setIsSyncing(false));
-      dispatch(setError(error instanceof Error ? error.message : 'データ取得エラーが発生しました'));
+      
+      // エラーメッセージを詳細化
+      let errorMessage = 'データ取得エラーが発生しました';
+      if (error instanceof Error) {
+        if (error.message.includes('403') || error.message.includes('insufficientFilePermissions')) {
+          errorMessage = 'Google Drive APIの設定に問題があります。管理者に連絡してください。';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      dispatch(setError(errorMessage));
     }
   }, [syncStatus.isSignedIn, getNovelData, dispatch]);
 
