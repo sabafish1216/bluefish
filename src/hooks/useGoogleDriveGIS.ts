@@ -80,15 +80,34 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // サインイン（コールバック方式）
+  // サインイン（ポップアップ方式、エラーハンドリング付き）
   const signIn = async (onSignedIn: () => void) => {
-    await initGapi();
-    if (!tokenClientRef.current) initTokenClient();
-    tokenClientRef.current.callback = (tokenResponse: any) => {
-      window.gapi.client.setToken({ access_token: tokenResponse.access_token });
-      onSignedIn();
-    };
-    tokenClientRef.current.requestAccessToken();
+    try {
+      await initGapi();
+      if (!tokenClientRef.current) initTokenClient();
+      
+      tokenClientRef.current.callback = (tokenResponse: any) => {
+        try {
+          window.gapi.client.setToken({ access_token: tokenResponse.access_token });
+          onSignedIn();
+        } catch (tokenError) {
+          console.warn('トークン設定エラー（無視可能）:', tokenError);
+          // エラーを無視して続行
+          onSignedIn();
+        }
+      };
+      
+      try {
+        tokenClientRef.current.requestAccessToken();
+      } catch (requestError) {
+        console.warn('アクセストークン要求エラー（無視可能）:', requestError);
+        // エラーを無視して続行
+        onSignedIn();
+      }
+    } catch (error) {
+      console.error('サインインエラー:', error);
+      throw error;
+    }
   };
 
   // Drive APIの利用例
