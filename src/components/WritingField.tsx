@@ -23,6 +23,7 @@ import {
 import { RootState } from '../store';
 import { Novel } from '../features/novels/novelsSlice';
 import { addFolder } from '../features/folders/foldersSlice';
+import { validateFolderName } from '../utils/folderValidation';
 import { addTag } from '../features/tags/tagsSlice';
 import TagSelector from './TagSelector';
 import FolderSelector from './FolderSelector';
@@ -54,6 +55,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [expanded, setExpanded] = useState(false);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
 
   // 自動保存フック
   const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -125,17 +127,21 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   }, [debouncedSave]);
 
   const handleCreateFolder = useCallback(() => {
-    if (newFolderName.trim()) {
+    const validation = validateFolderName(newFolderName, folders);
+    if (validation.isValid) {
       const newFolder = {
         id: Math.random().toString(36).slice(2),
         name: newFolderName.trim()
       };
       dispatch(addFolder(newFolder));
       setNewFolderName("");
+      setNewFolderError(null);
       setFolderModalOpen(false);
       setSelectedFolderId(newFolder.id);
+    } else {
+      setNewFolderError(validation.errorMessage);
     }
-  }, [newFolderName, dispatch]);
+  }, [newFolderName, folders, dispatch]);
 
 
   // 特殊テキスト挿入関数
@@ -460,19 +466,28 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
         </Box>
       </Paper>
       {/* フォルダ作成モーダル */}
-      <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>新しいフォルダ</DialogTitle>
         <DialogContent sx={{ minHeight: 100, pt: 3, pb: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
           <TextField
             label="フォルダ名"
             value={newFolderName}
-            onChange={e => setNewFolderName(e.target.value)}
+            onChange={e => {
+              setNewFolderName(e.target.value);
+              setNewFolderError(null);
+            }}
             fullWidth
             autoFocus
+            error={!!newFolderError}
+            helperText={newFolderError}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFolderModalOpen(false)}>キャンセル</Button>
+          <Button onClick={() => {
+            setFolderModalOpen(false);
+            setNewFolderName("");
+            setNewFolderError(null);
+          }}>キャンセル</Button>
           <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
         </DialogActions>
       </Dialog>

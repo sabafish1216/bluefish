@@ -34,6 +34,7 @@ import {
 import { RootState } from '../store';
 import { addNovel, deleteNovel } from '../features/novels/novelsSlice';
 import { addFolder, deleteFolder, updateFolder } from '../features/folders/foldersSlice';
+import { validateFolderName } from '../utils/folderValidation';
 import { DRAWER_CONSTANTS } from '../constants/drawer';
 import { useDrawerResize } from '../hooks/useDrawerResize';
 import { useExpansionState } from '../hooks/useExpansionState';
@@ -59,6 +60,7 @@ const NovelWorkspace: React.FC = () => {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
@@ -158,16 +160,20 @@ const NovelWorkspace: React.FC = () => {
   }, [showAnalytics]);
 
   const handleCreateFolder = useCallback(() => {
-    if (newFolderName.trim()) {
+    const validation = validateFolderName(newFolderName, folders);
+    if (validation.isValid) {
       const newFolder = {
         id: Math.random().toString(36).slice(2),
         name: newFolderName.trim()
       };
       dispatch(addFolder(newFolder));
       setNewFolderName("");
+      setNewFolderError(null);
       setFolderModalOpen(false);
+    } else {
+      setNewFolderError(validation.errorMessage);
     }
-  }, [newFolderName, dispatch]);
+  }, [newFolderName, folders, dispatch]);
 
   const handleBackToList = useCallback(() => {
     setSelectedNovelId(null);
@@ -188,10 +194,13 @@ const NovelWorkspace: React.FC = () => {
   // フォルダ編集確定
   const handleEditFolderSave = () => {
     if (editFolderId && editFolderName.trim()) {
-      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+      const validation = validateFolderName(editFolderName, folders, editFolderId);
+      if (validation.isValid) {
+        dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+        setEditFolderId(null);
+        setEditFolderName('');
+      }
     }
-    setEditFolderId(null);
-    setEditFolderName('');
   };
   // フォルダ削除開始
   const handleDeleteFolder = (folderId: string, name: string) => {
@@ -498,13 +507,22 @@ const NovelWorkspace: React.FC = () => {
               <TextField
                 label="フォルダ名"
                 value={newFolderName}
-                onChange={e => setNewFolderName(e.target.value)}
+                onChange={e => {
+                  setNewFolderName(e.target.value);
+                  setNewFolderError(null);
+                }}
                 fullWidth
                 autoFocus
+                error={!!newFolderError}
+                helperText={newFolderError}
               />
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setFolderModalOpen(false)}>キャンセル</Button>
+              <Button onClick={() => {
+                setFolderModalOpen(false);
+                setNewFolderName("");
+                setNewFolderError(null);
+              }}>キャンセル</Button>
               <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
             </DialogActions>
           </Dialog>

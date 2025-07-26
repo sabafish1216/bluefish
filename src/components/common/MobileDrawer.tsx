@@ -36,6 +36,7 @@ import ExpandableSection from './ExpandableSection';
 import ActionButtons from './ActionButtons';
 import packageJson from '../../../package.json';
 import { deleteFolder, updateFolder } from '../../features/folders/foldersSlice';
+import { validateFolderName } from '../../utils/folderValidation';
 
 interface MobileDrawerProps {
   open: boolean;
@@ -77,6 +78,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
+  const [editFolderError, setEditFolderError] = useState<string | null>(null);
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [deleteFolderName, setDeleteFolderName] = useState('');
 
@@ -118,14 +120,21 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const handleEditFolder = (folderId: string, name: string) => {
     setEditFolderId(folderId);
     setEditFolderName(name);
+    setEditFolderError(null);
   };
   // フォルダ編集確定
   const handleEditFolderSave = () => {
     if (editFolderId && editFolderName.trim()) {
-      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+      const validation = validateFolderName(editFolderName, folders, editFolderId);
+      if (validation.isValid) {
+        dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+        setEditFolderId(null);
+        setEditFolderName('');
+        setEditFolderError(null);
+      } else {
+        setEditFolderError(validation.errorMessage);
+      }
     }
-    setEditFolderId(null);
-    setEditFolderName('');
   };
   // フォルダ削除開始
   const handleDeleteFolder = (folderId: string, name: string) => {
@@ -272,8 +281,8 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 count={folderNovels.length}
                 isExpanded={expandedFolders.has(folder.id)}
                 onToggle={() => toggleFolderExpansion(folder.id)}
-                editable={folder.id !== 'uncategorized' && folder.name !== '未分類'}
-                deletable={folder.id !== 'uncategorized' && folder.name !== '未分類'}
+                editable
+                deletable
                 onEdit={handleEditFolder}
                 onDelete={handleDeleteFolder}
               >
@@ -358,14 +367,23 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
           <TextField
             label="フォルダ名"
             value={editFolderName}
-            onChange={e => setEditFolderName(e.target.value)}
+            onChange={e => {
+              setEditFolderName(e.target.value);
+              setEditFolderError(null);
+            }}
             fullWidth
             autoFocus
             sx={{ mt: 2 }}
+            error={!!editFolderError}
+            helperText={editFolderError}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditFolderId(null)}>キャンセル</Button>
+          <Button onClick={() => {
+            setEditFolderId(null);
+            setEditFolderName('');
+            setEditFolderError(null);
+          }}>キャンセル</Button>
           <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
         </DialogActions>
       </Dialog>
