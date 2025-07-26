@@ -167,11 +167,24 @@ export function useGoogleDriveSync() {
         if (isAuthenticated && !syncStatus.isSignedIn) {
           console.log('リロード後 - 認証状態を復元');
           dispatch(setIsSignedIn(true));
-          syncFromDrive();
-          startAutoSync();
+          // エラーが発生した場合の処理を追加
+          try {
+            await syncFromDrive();
+            startAutoSync();
+          } catch (syncError) {
+            console.error('同期エラー - 認証状態をリセット:', syncError);
+            dispatch(setIsSignedIn(false));
+            dispatch(setError('同期に失敗しました。再度サインインしてください。'));
+          }
         } else if (syncStatus.isSignedIn) {
           console.log('アプリ起動 - Google Driveからデータを取得');
-          syncFromDrive();
+          try {
+            await syncFromDrive();
+          } catch (syncError) {
+            console.error('同期エラー - 認証状態をリセット:', syncError);
+            dispatch(setIsSignedIn(false));
+            dispatch(setError('同期に失敗しました。再度サインインしてください。'));
+          }
         }
       } catch (error) {
         console.error('認証状態チェックエラー:', error);

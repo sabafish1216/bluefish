@@ -61,6 +61,7 @@ export function useGoogleDriveGIS() {
     try {
       await initGapi();
       const token = window.gapi.client.getToken();
+      console.log('認証状態チェック - Token:', token ? '存在' : 'なし');
       return token && token.access_token;
     } catch (error) {
       console.error('認証状態チェックエラー:', error);
