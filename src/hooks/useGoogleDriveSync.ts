@@ -180,14 +180,31 @@ export function useGoogleDriveSync() {
             const pendingData = JSON.parse(pendingSyncData);
             const pendingTime = parseInt(pendingSyncTimestamp);
             
-            // 保留データを先にGoogle Driveに同期（新しいデータを優先）
-            console.log('保留データをGoogle Driveに同期（新しいデータを優先）');
+            console.log('保留データの詳細:', {
+              timestamp: new Date(pendingTime).toLocaleString(),
+              novelCount: pendingData.novels?.length || 0,
+              folderCount: pendingData.folders?.length || 0
+            });
+            
+            // 保留データを直接Reduxに反映（新しいデータを優先）
+            console.log('保留データをReduxに反映');
+            if (pendingData.novels) dispatch(setNovels(pendingData.novels));
+            if (pendingData.folders) dispatch(setFolders(pendingData.folders));
+            if (pendingData.tags) dispatch(setTags(pendingData.tags));
+            if (pendingData.settings) dispatch(setSettings(pendingData.settings));
+            
+            // 保留データをGoogle Driveに同期
+            console.log('保留データをGoogle Driveに同期');
             await syncNovelData(pendingData);
             console.log('保留データの同期完了');
             
             // 保留データを削除
             localStorage.removeItem('pending_sync_data');
             localStorage.removeItem('pending_sync_timestamp');
+            
+            // 自動同期を開始
+            startAutoSync();
+            return; // ここで終了（syncFromDriveは実行しない）
           } catch (error) {
             console.error('保留データの処理エラー:', error);
             // エラーの場合は保留データを削除
@@ -196,7 +213,8 @@ export function useGoogleDriveSync() {
           }
         }
         
-        // その後でGoogle Driveからデータを取得
+        // 保留データがない場合のみGoogle Driveからデータを取得
+        console.log('保留データがないため、Google Driveからデータを取得');
         syncFromDrive();
         startAutoSync();
       });
@@ -222,7 +240,7 @@ export function useGoogleDriveSync() {
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (syncStatus.isSignedIn) {
-        console.log('アプリ終了 - 同期を実行');
+        console.log('アプリ終了 - 同期データを保存');
         
         // 同期的な同期処理（非同期処理は完了しないため）
         try {
@@ -236,7 +254,8 @@ export function useGoogleDriveSync() {
           
           console.log('アプリ終了時の同期データを保存:', {
             dataSize: content.length,
-            novelCount: currentData.novels?.length || 0
+            novelCount: currentData.novels?.length || 0,
+            timestamp: new Date().toLocaleString()
           });
         } catch (error) {
           console.error('アプリ終了時の同期エラー:', error);
@@ -293,14 +312,33 @@ export function useGoogleDriveSync() {
             console.log('保留中の同期データを確認（リロード後）');
             try {
               const pendingData = JSON.parse(pendingSyncData);
-              // 保留データを先にGoogle Driveに同期（新しいデータを優先）
-              console.log('保留データをGoogle Driveに同期（新しいデータを優先）');
+              const pendingTime = parseInt(pendingSyncTimestamp);
+              
+              console.log('保留データの詳細:', {
+                timestamp: new Date(pendingTime).toLocaleString(),
+                novelCount: pendingData.novels?.length || 0,
+                folderCount: pendingData.folders?.length || 0
+              });
+              
+              // 保留データを直接Reduxに反映（新しいデータを優先）
+              console.log('保留データをReduxに反映');
+              if (pendingData.novels) dispatch(setNovels(pendingData.novels));
+              if (pendingData.folders) dispatch(setFolders(pendingData.folders));
+              if (pendingData.tags) dispatch(setTags(pendingData.tags));
+              if (pendingData.settings) dispatch(setSettings(pendingData.settings));
+              
+              // 保留データをGoogle Driveに同期
+              console.log('保留データをGoogle Driveに同期');
               await syncNovelData(pendingData);
               console.log('保留データの同期完了');
               
               // 保留データを削除
               localStorage.removeItem('pending_sync_data');
               localStorage.removeItem('pending_sync_timestamp');
+              
+              // 自動同期を開始
+              startAutoSync();
+              return; // ここで終了（syncFromDriveは実行しない）
             } catch (error) {
               console.error('保留データの処理エラー:', error);
               localStorage.removeItem('pending_sync_data');
@@ -308,7 +346,8 @@ export function useGoogleDriveSync() {
             }
           }
           
-          // エラーが発生した場合の処理を追加
+          // 保留データがない場合のみGoogle Driveから取得
+          console.log('保留データがないため、Google Driveからデータを取得');
           try {
             await syncFromDrive();
             startAutoSync();
