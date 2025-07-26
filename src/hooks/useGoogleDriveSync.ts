@@ -93,13 +93,30 @@ export function useGoogleDriveSync() {
       
       // エラーメッセージを詳細化
       let errorMessage = 'データ取得エラーが発生しました';
-      if (error instanceof Error) {
+      
+      if (error && typeof error === 'object' && 'result' in error && error.result && typeof error.result === 'object' && 'error' in error.result) {
+        const apiError = (error.result as any).error;
+        console.log('APIエラー詳細:', apiError);
+        
+        if (apiError.code === 403) {
+          if (apiError.message && apiError.message.includes('insufficientFilePermissions')) {
+            errorMessage = 'Google Drive APIの権限が不足しています。Google Cloud Consoleの設定を確認してください。';
+          } else if (apiError.message && apiError.message.includes('blocked')) {
+            errorMessage = 'APIキーが制限されています。HTTPリファラーの設定を確認してください。';
+          } else {
+            errorMessage = 'Google Drive APIへのアクセスが拒否されました。APIキーの設定を確認してください。';
+          }
+        } else if (apiError.code === 401) {
+          errorMessage = '認証が無効です。再度サインインしてください。';
+        }
+      } else if (error instanceof Error) {
         if (error.message.includes('403') || error.message.includes('insufficientFilePermissions')) {
           errorMessage = 'Google Drive APIの設定に問題があります。管理者に連絡してください。';
         } else {
           errorMessage = error.message;
         }
       }
+      
       dispatch(setError(errorMessage));
     }
   }, [syncStatus.isSignedIn, getNovelData, dispatch]);
