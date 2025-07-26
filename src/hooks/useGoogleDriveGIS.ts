@@ -13,29 +13,47 @@ declare global {
 export function useGoogleDriveGIS() {
   const tokenClientRef = useRef<any>(null);
 
+  // デバッグ用: 環境変数の確認
+  console.log('Google Drive GIS - Environment variables:');
+  console.log('API Key:', process.env.REACT_APP_GOOGLE_API_KEY ? 'Set' : 'Not set');
+  console.log('Client ID:', process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+
   // gapiの初期化
   const initGapi = async () => {
     return new Promise<void>((resolve, reject) => {
+      console.log('Initializing gapi...');
       window.gapi.load('client', {
         callback: async () => {
-          await window.gapi.client.init({
-            apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-          });
-          resolve();
+          try {
+            console.log('gapi client loaded, initializing...');
+            await window.gapi.client.init({
+              apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            console.log('gapi client initialized successfully');
+            resolve();
+          } catch (error) {
+            console.error('gapi client init error:', error);
+            reject(error);
+          }
         },
-        onerror: reject,
+        onerror: (error: any) => {
+          console.error('gapi load error:', error);
+          reject(error);
+        },
       });
     });
   };
 
   // GISクライアントの初期化
   const initTokenClient = () => {
+    console.log('Initializing token client...');
     tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
       client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID!,
       scope: 'https://www.googleapis.com/auth/drive.file',
       callback: () => {}, // 後で差し替え
     });
+    console.log('Token client initialized');
   };
 
   // サインイン（コールバック方式）
