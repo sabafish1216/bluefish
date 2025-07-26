@@ -52,7 +52,7 @@ import EmptyState from './common/EmptyState';
 import ExpandableSection from './common/ExpandableSection';
 import SettingsDialog from './common/SettingsDialog';
 import MobileDrawer from './common/MobileDrawer';
-// import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
+import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
 import packageJson from '../../package.json';
 
 const NovelWorkspace: React.FC = () => {
@@ -291,7 +291,7 @@ const NovelWorkspace: React.FC = () => {
             >
               BlueFish
             </Typography>
-                            {/* <GoogleDriveSyncButton variant="icon" size="small" /> */}
+                            <GoogleDriveSyncButton variant="icon" size="small" />
             <IconButton
               color="inherit"
               onClick={() => setSettingsModalOpen(true)}
@@ -506,7 +506,7 @@ const NovelWorkspace: React.FC = () => {
           </Box>
           {/* Google Drive同期ボタン */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                            {/* <GoogleDriveSyncButton variant="button" size="small" /> */}
+                            <GoogleDriveSyncButton variant="button" size="small" />
           </Box>
           {/* タイトル下に4つのFabボタンを横並びで配置 */}
           <ActionButtons buttons={actionButtons} />

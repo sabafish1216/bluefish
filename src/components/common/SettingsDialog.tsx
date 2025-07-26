@@ -33,13 +33,13 @@ import { clearFolders } from '../../features/folders/foldersSlice';
 import { clearTags } from '../../features/tags/tagsSlice';
 import { clearSettings } from '../../features/settings/settingsSlice';
 import { resetSyncState } from '../../features/googleDriveSync/googleDriveSyncSlice';
-// import { useGoogleDriveSync } from '../../hooks/useGoogleDriveSync';
+import { useGoogleDriveSync } from '../../hooks/useGoogleDriveSync';
 
 const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClose }) => {
   const dispatch = useDispatch();
   const settings = useSelector((state: RootState) => state.settings);
   const theme = useSelector((state: RootState) => state.theme);
-  // const { syncStatus, signInToDrive, manualSync } = useGoogleDriveSync();
+  const { syncStatus, signInToDrive, manualSync } = useGoogleDriveSync();
 
   const handleFontSizeChange = (fontSize: string) => {
     dispatch(setFontSize(fontSize as 'small' | 'medium' | 'large'));
@@ -66,21 +66,21 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
     }
   };
 
-  // const handleGoogleDriveSignIn = async () => {
-  //   try {
-  //     await signInToDrive();
-  //   } catch (error) {
-  //     console.error('Google Driveサインインエラー:', error);
-  //   }
-  // };
+  const handleGoogleDriveSignIn = async () => {
+    try {
+      await signInToDrive();
+    } catch (error) {
+      console.error('Google Driveサインインエラー:', error);
+    }
+  };
 
-  // const handleManualSync = async () => {
-  //   try {
-  //     await manualSync();
-  //   } catch (error) {
-  //     console.error('手動同期エラー:', error);
-  //   }
-  // };
+  const handleManualSync = async () => {
+    try {
+      await manualSync();
+    } catch (error) {
+      console.error('手動同期エラー:', error);
+    }
+  };
 
   return (
     <Dialog
@@ -128,11 +128,47 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
           sx={{ mb: 2 }}
         />
         <Divider sx={{ my: 2 }} />
-        {/* Google Drive連携 - 一時的に無効化 */}
+        {/* Google Drive連携 */}
         <Typography variant="subtitle1" gutterBottom>Google Drive連携</Typography>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Google Drive同期機能は現在メンテナンス中です。
+          {!syncStatus.isSignedIn ? (
+            <Button 
+              variant="contained" 
+              onClick={handleGoogleDriveSignIn}
+              disabled={syncStatus.isSyncing}
+              sx={{ mb: 2 }}
+            >
+              {syncStatus.isSyncing ? '認証中...' : 'Google Driveにサインイン'}
+            </Button>
+          ) : (
+            <Box>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Button 
+                  variant="outlined" 
+                  onClick={handleManualSync}
+                  disabled={syncStatus.isSyncing}
+                >
+                  {syncStatus.isSyncing ? '同期中...' : '手動同期'}
+                </Button>
+                {syncStatus.isSyncing && (
+                  <CircularProgress size={20} />
+                )}
+              </Box>
+              {syncStatus.lastSyncTime && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  最終同期: {new Date(syncStatus.lastSyncTime).toLocaleString('ja-JP')}
+                </Typography>
+              )}
+              {syncStatus.error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {syncStatus.error}
+                </Alert>
+              )}
+            </Box>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            Google Driveにサインインすると、5分ごとに自動同期されます。
+            複数端末でデータを共有できます。
           </Typography>
         </Box>
         <Divider sx={{ my: 2 }} />
