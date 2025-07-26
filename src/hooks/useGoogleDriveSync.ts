@@ -14,8 +14,9 @@ import { setTags } from '../features/tags/tagsSlice';
 import { setSettings } from '../features/settings/settingsSlice';
 
 export function useGoogleDriveSync() {
+  // 一時的にGoogle Drive同期機能を無効化
   const dispatch = useDispatch();
-  const { syncNovelData, getNovelData, signIn } = useGoogleDriveGIS();
+  // const { syncNovelData, getNovelData, signIn } = useGoogleDriveGIS();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reduxの状態を取得
@@ -38,58 +39,15 @@ export function useGoogleDriveSync() {
 
   // Google Driveに同期
   const syncToDrive = useCallback(async () => {
-    if (!syncStatus.isSignedIn) return;
-    try {
-      dispatch(setIsSyncing(true));
-      dispatch(setError(null));
-      const data = getAllData();
-      await syncNovelData(data);
-      dispatch(setIsSyncing(false));
-      dispatch(setLastSyncTime(new Date().toISOString()));
-      dispatch(setError(null));
-      console.log('Google Drive同期完了');
-    } catch (error) {
-      console.error('Google Drive同期エラー:', error);
-      dispatch(setIsSyncing(false));
-      dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
-    }
-  }, [syncStatus.isSignedIn, syncNovelData, getAllData, dispatch]);
+    // 一時的に無効化
+    console.log('Google Drive同期機能は現在無効です');
+  }, []);
 
   // Google Driveからデータを取得
   const syncFromDrive = useCallback(async () => {
-    if (!syncStatus.isSignedIn) return;
-    try {
-      dispatch(setIsSyncing(true));
-      dispatch(setError(null));
-      const data = await getNovelData();
-      if (data) {
-        // Reduxの状態を更新
-        console.log('Google Driveからデータを取得:', data);
-        
-        // 各データをReduxに反映
-        if (data.novels) {
-          dispatch(setNovels(data.novels));
-        }
-        if (data.folders) {
-          dispatch(setFolders(data.folders));
-        }
-        if (data.tags) {
-          dispatch(setTags(data.tags));
-        }
-        if (data.settings) {
-          dispatch(setSettings(data.settings));
-        }
-      }
-      dispatch(setIsSyncing(false));
-      dispatch(setLastSyncTime(new Date().toISOString()));
-      dispatch(setError(null));
-      console.log('Google Driveからの取得完了');
-    } catch (error) {
-      console.error('Google Driveからの取得エラー:', error);
-      dispatch(setIsSyncing(false));
-      dispatch(setError(error instanceof Error ? error.message : 'データ取得エラーが発生しました'));
-    }
-  }, [syncStatus.isSignedIn, getNovelData, dispatch]);
+    // 一時的に無効化
+    console.log('Google Drive同期機能は現在無効です');
+  }, []);
 
   // 手動同期
   const manualSync = useCallback(async () => {
@@ -116,17 +74,9 @@ export function useGoogleDriveSync() {
 
   // Google Driveにサインイン
   const signInToDrive = useCallback(async () => {
-    try {
-      await signIn(() => {
-        dispatch(setIsSignedIn(true));
-        syncFromDrive();
-        startAutoSync();
-      });
-    } catch (error) {
-      console.error('Google Driveサインインエラー:', error);
-      dispatch(setError(error instanceof Error ? error.message : 'サインインエラーが発生しました'));
-    }
-  }, [signIn, syncFromDrive, startAutoSync, dispatch]);
+    // 一時的に無効化
+    console.log('Google Drive同期機能は現在無効です');
+  }, []);
 
   // ネットワーク復帰時の同期
   useEffect(() => {

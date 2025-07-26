@@ -103,4 +103,4 @@ export const useAnalyticsData = (novels: Novel[]) => {
     novelRankingNarration,
     novelRankingDialogue
   };
-};
+  };

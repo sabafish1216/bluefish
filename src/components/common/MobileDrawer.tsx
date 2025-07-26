@@ -130,9 +130,9 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
     if (editFolderId && editFolderName.trim()) {
       const validation = validateFolderName(editFolderName, folders, editFolderId);
       if (validation.isValid) {
-        dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
-        setEditFolderId(null);
-        setEditFolderName('');
+      dispatch(updateFolder({ id: editFolderId, name: editFolderName.trim() }));
+    setEditFolderId(null);
+    setEditFolderName('');
         setEditFolderError(null);
       } else {
         setEditFolderError(validation.errorMessage);
