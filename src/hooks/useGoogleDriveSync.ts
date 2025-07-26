@@ -318,78 +318,85 @@ export function useGoogleDriveSync() {
         console.log('useEffect 実行開始');
         
         const isAuthenticated = await checkAuthStatus();
-        if (isAuthenticated && !syncStatus.isSignedIn) {
-          console.log('リロード後 - 認証状態を復元');
-          dispatch(setIsSignedIn(true));
+        
+        // 保留中の同期データがあるかチェック（認証状態に関係なく最初にチェック）
+        const pendingSyncData = localStorage.getItem('pending_sync_data');
+        const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
+        
+        if (pendingSyncData && pendingSyncTimestamp) {
+          console.log('=== 保留データ処理開始 ===');
+          console.log('保留中の同期データを確認（認証状態に関係なく）');
           
-          // 保留中の同期データがあるかチェック
-          const pendingSyncData = localStorage.getItem('pending_sync_data');
-          const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
-          
-          if (pendingSyncData && pendingSyncTimestamp) {
-            console.log('=== 保留データ処理開始 ===');
-            console.log('保留中の同期データを確認（リロード後）');
-            try {
-              const pendingData = JSON.parse(pendingSyncData);
-              const pendingTime = parseInt(pendingSyncTimestamp);
-              
-              console.log('保留データの詳細:', {
-                timestamp: new Date(pendingTime).toLocaleString(),
-                novelCount: pendingData.novels?.length || 0,
-                folderCount: pendingData.folders?.length || 0,
-                novelTitles: pendingData.novels?.map((n: any) => n.title).slice(0, 3) || []
-              });
-              
-              // 現在のRedux状態を確認
-              const currentData = getAllData();
-              console.log('現在のRedux状態:', {
-                novelCount: currentData.novels?.length || 0,
-                novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
-              });
-              
-              // 保留データを直接Reduxに反映（新しいデータを優先）
-              console.log('保留データをReduxに反映開始');
-              if (pendingData.novels) {
-                console.log('小説データを設定:', pendingData.novels.length + '件');
-                dispatch(setNovels(pendingData.novels));
-              }
-              if (pendingData.folders) {
-                console.log('フォルダデータを設定:', pendingData.folders.length + '件');
-                dispatch(setFolders(pendingData.folders));
-              }
-              if (pendingData.tags) {
-                console.log('タグデータを設定:', pendingData.tags.length + '件');
-                dispatch(setTags(pendingData.tags));
-              }
-              if (pendingData.settings) {
-                console.log('設定データを設定');
-                dispatch(setSettings(pendingData.settings));
-              }
-              console.log('保留データをReduxに反映完了');
-              
-              // 保留データをGoogle Driveに同期
-              console.log('保留データをGoogle Driveに同期開始');
-              await syncNovelData(pendingData);
-              console.log('保留データの同期完了');
-              
-              // 保留データを削除
-              localStorage.removeItem('pending_sync_data');
-              localStorage.removeItem('pending_sync_timestamp');
-              console.log('保留データを削除完了');
-              
-              // 自動同期を開始
-              startAutoSync();
-              console.log('=== 保留データ処理完了（syncFromDriveは実行しない）===');
-              return; // ここで終了（syncFromDriveは実行しない）
-            } catch (error) {
-              console.error('保留データの処理エラー:', error);
-              localStorage.removeItem('pending_sync_data');
-              localStorage.removeItem('pending_sync_timestamp');
-            }
+          // 認証されていない場合は認証状態を復元
+          if (isAuthenticated && !syncStatus.isSignedIn) {
+            console.log('認証状態を復元');
+            dispatch(setIsSignedIn(true));
           }
           
-          // 保留データがない場合のみGoogle Driveから取得
-          console.log('保留データがないため、Google Driveからデータを取得');
+          try {
+            const pendingData = JSON.parse(pendingSyncData);
+            const pendingTime = parseInt(pendingSyncTimestamp);
+            
+            console.log('保留データの詳細:', {
+              timestamp: new Date(pendingTime).toLocaleString(),
+              novelCount: pendingData.novels?.length || 0,
+              folderCount: pendingData.folders?.length || 0,
+              novelTitles: pendingData.novels?.map((n: any) => n.title).slice(0, 3) || []
+            });
+            
+            // 現在のRedux状態を確認
+            const currentData = getAllData();
+            console.log('現在のRedux状態:', {
+              novelCount: currentData.novels?.length || 0,
+              novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
+            });
+            
+            // 保留データを直接Reduxに反映（新しいデータを優先）
+            console.log('保留データをReduxに反映開始');
+            if (pendingData.novels) {
+              console.log('小説データを設定:', pendingData.novels.length + '件');
+              dispatch(setNovels(pendingData.novels));
+            }
+            if (pendingData.folders) {
+              console.log('フォルダデータを設定:', pendingData.folders.length + '件');
+              dispatch(setFolders(pendingData.folders));
+            }
+            if (pendingData.tags) {
+              console.log('タグデータを設定:', pendingData.tags.length + '件');
+              dispatch(setTags(pendingData.tags));
+            }
+            if (pendingData.settings) {
+              console.log('設定データを設定');
+              dispatch(setSettings(pendingData.settings));
+            }
+            console.log('保留データをReduxに反映完了');
+            
+            // 保留データをGoogle Driveに同期
+            console.log('保留データをGoogle Driveに同期開始');
+            await syncNovelData(pendingData);
+            console.log('保留データの同期完了');
+            
+            // 保留データを削除
+            localStorage.removeItem('pending_sync_data');
+            localStorage.removeItem('pending_sync_timestamp');
+            console.log('保留データを削除完了');
+            
+            // 自動同期を開始
+            startAutoSync();
+            console.log('=== 保留データ処理完了（syncFromDriveは実行しない）===');
+            return; // ここで終了（syncFromDriveは実行しない）
+          } catch (error) {
+            console.error('保留データの処理エラー:', error);
+            localStorage.removeItem('pending_sync_data');
+            localStorage.removeItem('pending_sync_timestamp');
+          }
+        }
+        
+        // 保留データがない場合の通常処理
+        if (isAuthenticated && !syncStatus.isSignedIn) {
+          console.log('リロード後 - 認証状態を復元（保留データなし）');
+          dispatch(setIsSignedIn(true));
+          
           try {
             await syncFromDrive();
             startAutoSync();
@@ -399,7 +406,7 @@ export function useGoogleDriveSync() {
             dispatch(setError('認証が期限切れです。再度サインインしてください。'));
           }
         } else if (syncStatus.isSignedIn) {
-          console.log('アプリ起動 - Google Driveからデータを取得');
+          console.log('アプリ起動 - Google Driveからデータを取得（保留データなし）');
           try {
             await syncFromDrive();
           } catch (syncError) {
