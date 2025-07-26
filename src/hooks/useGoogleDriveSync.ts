@@ -60,6 +60,7 @@ export function useGoogleDriveSync() {
   // Google Driveからデータを取得
   const syncFromDrive = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
+    console.log('=== syncFromDrive 実行開始 ===');
     console.log('syncFromDrive 実行開始:', new Date().toLocaleString());
     
     // 認証状態を再確認
@@ -78,21 +79,38 @@ export function useGoogleDriveSync() {
       const data = await getNovelData();
       if (data) {
         // Reduxの状態を更新
-        console.log('Google Driveからデータを取得:', data);
+        console.log('Google Driveからデータを取得:', {
+          novelCount: data.novels?.length || 0,
+          folderCount: data.folders?.length || 0,
+          novelTitles: data.novels?.map((n: any) => n.title).slice(0, 3) || []
+        });
+        
+        // 現在のRedux状態を確認
+        const currentData = getAllData();
+        console.log('更新前のRedux状態:', {
+          novelCount: currentData.novels?.length || 0,
+          novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
+        });
         
         // 各データをReduxに反映
         if (data.novels) {
+          console.log('Google Driveの小説データをReduxに設定:', data.novels.length + '件');
           dispatch(setNovels(data.novels));
         }
         if (data.folders) {
+          console.log('Google DriveのフォルダデータをReduxに設定:', data.folders.length + '件');
           dispatch(setFolders(data.folders));
         }
         if (data.tags) {
+          console.log('Google DriveのタグデータをReduxに設定:', data.tags.length + '件');
           dispatch(setTags(data.tags));
         }
         if (data.settings) {
+          console.log('Google Driveの設定データをReduxに設定');
           dispatch(setSettings(data.settings));
         }
+        
+        console.log('=== Google DriveデータでReduxを更新完了 ===');
       }
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
@@ -309,6 +327,7 @@ export function useGoogleDriveSync() {
           const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
           
           if (pendingSyncData && pendingSyncTimestamp) {
+            console.log('=== 保留データ処理開始 ===');
             console.log('保留中の同期データを確認（リロード後）');
             try {
               const pendingData = JSON.parse(pendingSyncData);
@@ -317,27 +336,50 @@ export function useGoogleDriveSync() {
               console.log('保留データの詳細:', {
                 timestamp: new Date(pendingTime).toLocaleString(),
                 novelCount: pendingData.novels?.length || 0,
-                folderCount: pendingData.folders?.length || 0
+                folderCount: pendingData.folders?.length || 0,
+                novelTitles: pendingData.novels?.map((n: any) => n.title).slice(0, 3) || []
+              });
+              
+              // 現在のRedux状態を確認
+              const currentData = getAllData();
+              console.log('現在のRedux状態:', {
+                novelCount: currentData.novels?.length || 0,
+                novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
               });
               
               // 保留データを直接Reduxに反映（新しいデータを優先）
-              console.log('保留データをReduxに反映');
-              if (pendingData.novels) dispatch(setNovels(pendingData.novels));
-              if (pendingData.folders) dispatch(setFolders(pendingData.folders));
-              if (pendingData.tags) dispatch(setTags(pendingData.tags));
-              if (pendingData.settings) dispatch(setSettings(pendingData.settings));
+              console.log('保留データをReduxに反映開始');
+              if (pendingData.novels) {
+                console.log('小説データを設定:', pendingData.novels.length + '件');
+                dispatch(setNovels(pendingData.novels));
+              }
+              if (pendingData.folders) {
+                console.log('フォルダデータを設定:', pendingData.folders.length + '件');
+                dispatch(setFolders(pendingData.folders));
+              }
+              if (pendingData.tags) {
+                console.log('タグデータを設定:', pendingData.tags.length + '件');
+                dispatch(setTags(pendingData.tags));
+              }
+              if (pendingData.settings) {
+                console.log('設定データを設定');
+                dispatch(setSettings(pendingData.settings));
+              }
+              console.log('保留データをReduxに反映完了');
               
               // 保留データをGoogle Driveに同期
-              console.log('保留データをGoogle Driveに同期');
+              console.log('保留データをGoogle Driveに同期開始');
               await syncNovelData(pendingData);
               console.log('保留データの同期完了');
               
               // 保留データを削除
               localStorage.removeItem('pending_sync_data');
               localStorage.removeItem('pending_sync_timestamp');
+              console.log('保留データを削除完了');
               
               // 自動同期を開始
               startAutoSync();
+              console.log('=== 保留データ処理完了（syncFromDriveは実行しない）===');
               return; // ここで終了（syncFromDriveは実行しない）
             } catch (error) {
               console.error('保留データの処理エラー:', error);
