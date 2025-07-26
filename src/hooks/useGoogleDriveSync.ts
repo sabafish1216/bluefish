@@ -8,6 +8,10 @@ import {
   setError,
   setIsSignedIn,
 } from '../features/googleDriveSync/googleDriveSyncSlice';
+import { setNovels } from '../features/novels/novelsSlice';
+import { setFolders } from '../features/folders/foldersSlice';
+import { setTags } from '../features/tags/tagsSlice';
+import { setSettings } from '../features/settings/settingsSlice';
 
 export function useGoogleDriveSync() {
   const dispatch = useDispatch();
@@ -59,9 +63,22 @@ export function useGoogleDriveSync() {
       dispatch(setError(null));
       const data = await getNovelData();
       if (data) {
-        // Reduxの状態を更新（実際の実装では適切なactionをdispatch）
+        // Reduxの状態を更新
         console.log('Google Driveからデータを取得:', data);
-        // TODO: Reduxの状態を更新する処理を実装
+        
+        // 各データをReduxに反映
+        if (data.novels) {
+          dispatch(setNovels(data.novels));
+        }
+        if (data.folders) {
+          dispatch(setFolders(data.folders));
+        }
+        if (data.tags) {
+          dispatch(setTags(data.tags));
+        }
+        if (data.settings) {
+          dispatch(setSettings(data.settings));
+        }
       }
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
@@ -142,13 +159,20 @@ export function useGoogleDriveSync() {
     };
   }, [stopAutoSync]);
 
+  // アプリ起動時のデータ同期
+  useEffect(() => {
+    if (syncStatus.isSignedIn) {
+      console.log('アプリ起動 - Google Driveからデータを取得');
+      syncFromDrive();
+    }
+  }, [syncStatus.isSignedIn, syncFromDrive]);
+
   return {
     syncStatus,
     signInToDrive,
     manualSync,
     startAutoSync,
     stopAutoSync,
-    syncToDrive,
     syncFromDrive,
   };
 } 

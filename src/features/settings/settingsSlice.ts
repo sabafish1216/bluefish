@@ -42,6 +42,9 @@ const settingsSlice = createSlice({
     // setAutoComplete: (state, action: PayloadAction<boolean>) => {
     //   state.autoComplete = action.payload;
     // },
+    setSettings: (state, action: PayloadAction<Partial<SettingsState>>) => {
+      return { ...state, ...action.payload };
+    },
   },
 });
 
@@ -52,6 +55,7 @@ export const {
   setLineNumbers,
   // setSpellCheck,
   // setAutoComplete,
+  setSettings,
 } = settingsSlice.actions;
 
 export default settingsSlice.reducer; 

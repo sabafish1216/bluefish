@@ -32,8 +32,11 @@ const novelsSlice = createSlice({
     deleteNovel: (state, action: PayloadAction<string>) => {
       state.novels = state.novels.filter(n => n.id !== action.payload);
     },
+    setNovels: (state, action: PayloadAction<Novel[]>) => {
+      state.novels = action.payload;
+    },
   },
 });
 
-export const { addNovel, updateNovel, deleteNovel } = novelsSlice.actions;
+export const { addNovel, updateNovel, deleteNovel, setNovels } = novelsSlice.actions;
 export default novelsSlice.reducer; 
