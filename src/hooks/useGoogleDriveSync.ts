@@ -100,7 +100,7 @@ export function useGoogleDriveSync() {
         
         if (apiError.code === 403) {
           if (apiError.message && apiError.message.includes('insufficientFilePermissions')) {
-            errorMessage = 'Google Drive APIの権限が不足しています。Google Cloud Consoleの設定を確認してください。';
+            errorMessage = 'Google Drive APIの権限が不足しています。OAuth同意画面の設定とテストユーザーの追加を確認してください。';
           } else if (apiError.message && apiError.message.includes('blocked')) {
             errorMessage = 'APIキーが制限されています。HTTPリファラーの設定を確認してください。';
           } else {

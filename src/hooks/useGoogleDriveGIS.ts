@@ -63,7 +63,7 @@ export function useGoogleDriveGIS() {
     console.log('Initializing token client...');
     tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
       client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID!,
-      scope: 'https://www.googleapis.com/auth/drive.file',
+      scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
       callback: () => {}, // 後で差し替え
     });
     console.log('Token client initialized');
