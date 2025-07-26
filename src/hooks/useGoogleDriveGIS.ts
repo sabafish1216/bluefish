@@ -88,5 +88,91 @@ export function useGoogleDriveGIS() {
     return res.result.id;
   };
 
-  return { signIn, listFiles, uploadFile };
+  // ファイルダウンロード
+  const downloadFile = async (fileId: string) => {
+    const res = await window.gapi.client.drive.files.get({
+      fileId,
+      alt: 'media',
+    });
+    return res.body;
+  };
+
+  // ファイル検索（名前で検索）
+  const findFileByName = async (fileName: string) => {
+    const res = await window.gapi.client.drive.files.list({
+      q: `name='${fileName}'`,
+      fields: 'files(id, name, modifiedTime)',
+    });
+    return res.result.files[0] || null;
+  };
+
+  // ファイル更新（既存ファイルの内容を更新）
+  const updateFile = async (fileId: string, content: string) => {
+    const boundary = '-------314159265358979323846';
+    const delimiter = '\r\n--' + boundary + '\r\n';
+    const closeDelim = '\r\n--' + boundary + '--';
+    const contentType = 'application/json';
+    const metadata = {
+      mimeType: contentType,
+    };
+    const multipartRequestBody =
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: ' + contentType + '\r\n\r\n' +
+      content +
+      closeDelim;
+    const res = await window.gapi.client.request({
+      path: `/upload/drive/v3/files/${fileId}`,
+      method: 'PATCH',
+      params: { uploadType: 'multipart' },
+      headers: {
+        'Content-Type': 'multipart/related; boundary=' + boundary,
+      },
+      body: multipartRequestBody,
+    });
+    return res.result;
+  };
+
+  // 小説データ全体をGoogle Driveに同期
+  const syncNovelData = async (novelData: any) => {
+    const fileName = 'novel-writer-data.json';
+    const content = JSON.stringify(novelData, null, 2);
+    
+    // 既存ファイルを検索
+    const existingFile = await findFileByName(fileName);
+    
+    if (existingFile) {
+      // 既存ファイルを更新
+      return await updateFile(existingFile.id, content);
+    } else {
+      // 新規ファイルを作成
+      return await uploadFile(fileName, content);
+    }
+  };
+
+  // Google Driveから小説データを取得
+  const getNovelData = async () => {
+    const fileName = 'novel-writer-data.json';
+    const existingFile = await findFileByName(fileName);
+    
+    if (existingFile) {
+      const content = await downloadFile(existingFile.id);
+      return JSON.parse(content);
+    }
+    
+    return null; // ファイルが存在しない場合
+  };
+
+  return { 
+    signIn, 
+    listFiles, 
+    uploadFile, 
+    downloadFile, 
+    findFileByName, 
+    updateFile,
+    syncNovelData,
+    getNovelData
+  };
 } 

@@ -13,7 +13,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Button
+  Button,
+  Snackbar,
+  Portal
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -79,6 +81,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
   const [editFolderError, setEditFolderError] = useState<string | null>(null);
+  const [showErrorToast, setShowErrorToast] = useState(false);
   const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
   const [deleteFolderName, setDeleteFolderName] = useState('');
 
@@ -133,6 +136,7 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
         setEditFolderError(null);
       } else {
         setEditFolderError(validation.errorMessage);
+        setShowErrorToast(true);
       }
     }
   };
@@ -374,8 +378,6 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
             fullWidth
             autoFocus
             sx={{ mt: 2 }}
-            error={!!editFolderError}
-            helperText={editFolderError}
           />
         </DialogContent>
         <DialogActions>
@@ -387,6 +389,25 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
           <Button onClick={handleEditFolderSave} disabled={!editFolderName.trim()}>保存</Button>
         </DialogActions>
       </Dialog>
+      
+      {/* エラーToast通知 */}
+      <Portal container={document.body}>
+        <Snackbar
+          open={showErrorToast}
+          autoHideDuration={4000}
+          onClose={() => setShowErrorToast(false)}
+          message={editFolderError}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          sx={{
+            zIndex: 99999,
+            '& .MuiSnackbarContent-root': {
+              backgroundColor: '#d32f2f',
+              color: 'white',
+              fontWeight: 'bold'
+            }
+          }}
+        />
+      </Portal>
       {/* フォルダ削除ダイアログ */}
       <Dialog open={!!deleteFolderId} onClose={() => setDeleteFolderId(null)} maxWidth="xs" fullWidth>
         <DialogTitle>フォルダを削除しますか？</DialogTitle>

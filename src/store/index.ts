@@ -6,11 +6,12 @@ import foldersReducer from '../features/folders/foldersSlice';
 import tagsReducer from '../features/tags/tagsSlice';
 import settingsReducer from '../features/settings/settingsSlice';
 import themeReducer from '../features/theme/themeSlice';
+import googleDriveSyncReducer from '../features/googleDriveSync/googleDriveSyncSlice';
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['novels', 'folders', 'tags', 'settings', 'theme']
+  whitelist: ['novels', 'folders', 'tags', 'settings', 'theme', 'googleDriveSync']
 };
 
 const persistedReducer = persistReducer(persistConfig, (state: any, action: any) => {
@@ -20,13 +21,15 @@ const persistedReducer = persistReducer(persistConfig, (state: any, action: any)
   const tags = persistReducer({ key: 'tags', storage }, tagsReducer)(state?.tags, action);
   const settings = persistReducer({ key: 'settings', storage }, settingsReducer)(state?.settings, action);
   const theme = persistReducer({ key: 'theme', storage }, themeReducer)(state?.theme, action);
+  const googleDriveSync = persistReducer({ key: 'googleDriveSync', storage }, googleDriveSyncReducer)(state?.googleDriveSync, action);
 
   return {
     novels,
     folders,
     tags,
     settings,
-    theme
+    theme,
+    googleDriveSync
   };
 });
 

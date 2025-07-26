@@ -10,7 +10,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Snackbar,
+  Portal
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -56,6 +58,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const [showErrorToast, setShowErrorToast] = useState(false);
 
   // 自動保存フック
   const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -140,6 +143,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
       setSelectedFolderId(newFolder.id);
     } else {
       setNewFolderError(validation.errorMessage);
+      setShowErrorToast(true);
     }
   }, [newFolderName, folders, dispatch]);
 
@@ -478,8 +482,6 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
             }}
             fullWidth
             autoFocus
-            error={!!newFolderError}
-            helperText={newFolderError}
           />
         </DialogContent>
         <DialogActions>
@@ -491,6 +493,25 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
           <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
         </DialogActions>
       </Dialog>
+      
+      {/* エラーToast通知 */}
+      <Portal container={document.body}>
+        <Snackbar
+          open={showErrorToast}
+          autoHideDuration={4000}
+          onClose={() => setShowErrorToast(false)}
+          message={newFolderError}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          sx={{
+            zIndex: 99999,
+            '& .MuiSnackbarContent-root': {
+              backgroundColor: '#d32f2f',
+              color: 'white',
+              fontWeight: 'bold'
+            }
+          }}
+        />
+      </Portal>
     </Box>
   );
 };

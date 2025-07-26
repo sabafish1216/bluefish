@@ -17,7 +17,9 @@ import {
   AppBar,
   Toolbar,
   useTheme,
-  Paper
+  Paper,
+  Snackbar,
+  Portal
 } from '@mui/material';
 import {
   Book as BookIcon,
@@ -50,6 +52,7 @@ import EmptyState from './common/EmptyState';
 import ExpandableSection from './common/ExpandableSection';
 import SettingsDialog from './common/SettingsDialog';
 import MobileDrawer from './common/MobileDrawer';
+import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
 import packageJson from '../../package.json';
 
 const NovelWorkspace: React.FC = () => {
@@ -61,6 +64,7 @@ const NovelWorkspace: React.FC = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const [showErrorToast, setShowErrorToast] = useState(false);
   const [dynamicHeight, setDynamicHeight] = useState<number | undefined>(undefined);
   const [editFolderId, setEditFolderId] = useState<string | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
@@ -172,6 +176,7 @@ const NovelWorkspace: React.FC = () => {
       setFolderModalOpen(false);
     } else {
       setNewFolderError(validation.errorMessage);
+      setShowErrorToast(true);
     }
   }, [newFolderName, folders, dispatch]);
 
@@ -286,6 +291,7 @@ const NovelWorkspace: React.FC = () => {
             >
               BlueFish
             </Typography>
+            <GoogleDriveSyncButton variant="icon" size="small" />
             <IconButton
               color="inherit"
               onClick={() => setSettingsModalOpen(true)}
@@ -498,6 +504,10 @@ const NovelWorkspace: React.FC = () => {
               BlueFish
             </Typography>
           </Box>
+          {/* Google Drive同期ボタン */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <GoogleDriveSyncButton variant="button" size="small" />
+          </Box>
           {/* タイトル下に4つのFabボタンを横並びで配置 */}
           <ActionButtons buttons={actionButtons} />
           {/* フォルダ作成モーダル */}
@@ -513,8 +523,6 @@ const NovelWorkspace: React.FC = () => {
                 }}
                 fullWidth
                 autoFocus
-                error={!!newFolderError}
-                helperText={newFolderError}
               />
             </DialogContent>
             <DialogActions>
@@ -526,6 +534,25 @@ const NovelWorkspace: React.FC = () => {
               <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
             </DialogActions>
           </Dialog>
+          
+          {/* エラーToast通知 */}
+          <Portal container={document.body}>
+            <Snackbar
+              open={showErrorToast}
+              autoHideDuration={4000}
+              onClose={() => setShowErrorToast(false)}
+              message={newFolderError}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+              sx={{
+                zIndex: 99999,
+                '& .MuiSnackbarContent-root': {
+                  backgroundColor: '#d32f2f',
+                  color: 'white',
+                  fontWeight: 'bold'
+                }
+              }}
+            />
+          </Portal>
         </Box>
 
         <Tabs
