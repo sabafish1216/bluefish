@@ -11,7 +11,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Portal
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -62,6 +63,11 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [showReplaceWarning, setShowReplaceWarning] = useState(false);
+  const [replaceWarningText, setReplaceWarningText] = useState("");
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [pendingReplaceAction, setPendingReplaceAction] = useState<(() => void) | null>(null);
 
   // 自動保存フック
   const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
@@ -168,6 +174,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       setSelectedFolderId(newFolder.id);
     } else {
       setNewFolderError(validation.errorMessage);
+      setShowErrorToast(true);
     }
   }, [newFolderName, folders, dispatch]);
 
@@ -203,6 +210,107 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
       }
     }, 0);
   }, [body, debouncedSave]);
+
+  // 括弧挿入関数（選択文字を括弧内に挿入）
+  const insertBrackets = useCallback((openBracket: string, closeBracket: string) => {
+    const textArea = textAreaRef.current;
+    if (!textArea) return;
+
+    const start = textArea.selectionStart;
+    const end = textArea.selectionEnd;
+    const selectedText = textArea.value.substring(start, end);
+    
+    let finalText: string;
+    if (selectedText) {
+      // 選択文字がある場合は括弧内に挿入
+      finalText = openBracket + selectedText + closeBracket;
+    } else {
+      // 選択文字がない場合は括弧のみ挿入
+      finalText = openBracket + closeBracket;
+    }
+    
+    const newText = textArea.value.substring(0, start) + finalText + textArea.value.substring(end);
+    setBody(newText);
+    debouncedSave({ body: newText });
+
+    setTimeout(() => {
+      textArea.focus();
+      if (selectedText) {
+        // 選択文字があった場合は、括弧内の文字を選択
+        const selectStart = start + openBracket.length;
+        const selectEnd = selectStart + selectedText.length;
+        textArea.setSelectionRange(selectStart, selectEnd);
+      } else {
+        // 選択文字がない場合は、括弧の間にカーソルを移動
+        const newCursorPos = start + openBracket.length;
+        textArea.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  }, [debouncedSave]);
+
+  // 置換警告モーダル表示関数
+  const showReplaceWarningModal = useCallback((text: string, action: () => void) => {
+    console.log('showReplaceWarningModal呼び出し:', text);
+    // ローカルストレージから「今後は表示しない」設定を確認
+    const dontShowAgainSetting = localStorage.getItem('dontShowReplaceWarning');
+    console.log('dontShowAgainSetting:', dontShowAgainSetting);
+    if (dontShowAgainSetting === 'true') {
+      // 警告を表示せずに直接実行
+      console.log('警告をスキップして直接実行');
+      action();
+      // 直接実行した場合もフォーカスを戻す
+      setTimeout(() => {
+        const textArea = textAreaRef.current;
+        if (textArea) {
+          textArea.focus();
+        }
+      }, 100);
+      return;
+    }
+
+    console.log('警告モーダルを表示する');
+    setReplaceWarningText(text);
+    setPendingReplaceAction(() => action);
+    setShowReplaceWarning(true);
+  }, []);
+
+  // 置換実行関数
+  const executeReplace = useCallback(() => {
+    if (pendingReplaceAction) {
+      pendingReplaceAction();
+    }
+    setShowReplaceWarning(false);
+    setPendingReplaceAction(null);
+    
+    // 「今後は表示しない」がチェックされている場合、設定を保存
+    if (dontShowAgain) {
+      localStorage.setItem('dontShowReplaceWarning', 'true');
+    }
+    setDontShowAgain(false);
+    
+    // モーダルが閉じた後にテキストエリアにフォーカスを戻す
+    setTimeout(() => {
+      const textArea = textAreaRef.current;
+      if (textArea) {
+        textArea.focus();
+      }
+    }, 100);
+  }, [pendingReplaceAction, dontShowAgain]);
+
+  // 置換キャンセル関数
+  const cancelReplace = useCallback(() => {
+    setShowReplaceWarning(false);
+    setPendingReplaceAction(null);
+    setDontShowAgain(false);
+    
+    // モーダルが閉じた後にテキストエリアにフォーカスを戻す
+    setTimeout(() => {
+      const textArea = textAreaRef.current;
+      if (textArea) {
+        textArea.focus();
+      }
+    }, 100);
+  }, []);
 
   const selectedTagObjects = tags.filter(t => selectedTags.includes(t.id));
   const displayTagNames = Array.from(new Set([
@@ -399,11 +507,45 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             }}>
               {/* 既存の特殊文字ボタン群＋ページ・章・ルビボタン */}
               {[
-                { label: '「」', onClick: () => { insertSpecialText('「」'); setTimeout(() => { const textArea = textAreaRef.current; if (textArea) { const pos = (textArea.selectionStart || 0) - 1; textArea.setSelectionRange(pos, pos); } }, 0); } },
-                { label: '『』', onClick: () => { insertSpecialText('『』'); setTimeout(() => { const textArea = textAreaRef.current; if (textArea) { const pos = (textArea.selectionStart || 0) - 1; textArea.setSelectionRange(pos, pos); } }, 0); } },
-                { label: '（）', onClick: () => { insertSpecialText('（）'); setTimeout(() => { const textArea = textAreaRef.current; if (textArea) { const pos = (textArea.selectionStart || 0) - 1; textArea.setSelectionRange(pos, pos); } }, 0); } },
-                { label: '…', onClick: () => insertSpecialText('…') },
-                { label: '—', onClick: () => insertSpecialText('—') },
+                { label: '「」', onClick: () => insertBrackets('「', '」') },
+                { label: '『』', onClick: () => insertBrackets('『', '』') },
+                { label: '（）', onClick: () => insertBrackets('（', '）') },
+                { 
+                  label: '…', 
+                  onClick: () => {
+                    const textArea = textAreaRef.current;
+                    console.log('…ボタンクリック - 選択範囲:', textArea?.selectionStart, textArea?.selectionEnd);
+                    if (textArea && textArea.selectionStart !== textArea.selectionEnd) {
+                      // 選択文字がある場合は警告モーダルを表示
+                      console.log('警告モーダルを表示');
+                      showReplaceWarningModal('選択文字を置き換えます。この処理は取り消せません', () => {
+                        insertSpecialText('…');
+                      });
+                    } else {
+                      // 選択文字がない場合は直接挿入
+                      console.log('直接挿入');
+                      insertSpecialText('…');
+                    }
+                  }
+                },
+                { 
+                  label: '—', 
+                  onClick: () => {
+                    const textArea = textAreaRef.current;
+                    console.log('—ボタンクリック - 選択範囲:', textArea?.selectionStart, textArea?.selectionEnd);
+                    if (textArea && textArea.selectionStart !== textArea.selectionEnd) {
+                      // 選択文字がある場合は警告モーダルを表示
+                      console.log('警告モーダルを表示');
+                      showReplaceWarningModal('選択文字を置き換えます。この処理は取り消せません', () => {
+                        insertSpecialText('—');
+                      });
+                    } else {
+                      // 選択文字がない場合は直接挿入
+                      console.log('直接挿入');
+                      insertSpecialText('—');
+                    }
+                  }
+                },
                 { label: '⧉', onClick: () => insertSpecialText('[newpage]') },
                 { label: '§', onClick: () => insertSpecialText('[chapter:章タイトル]', '章タイトル', '章タイトル') },
                 { label: '𝑟𝑏', onClick: () => insertSpecialText('[[rb:漢字 > ふりがな]]', 'ふりがな', '漢字') },
@@ -432,6 +574,54 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             </Box>
           )}
         </Box>
+
+        {/* 置換警告モーダル（エディタモード用） */}
+        <Portal container={document.body}>
+          <Dialog 
+            open={showReplaceWarning} 
+            onClose={cancelReplace}
+            maxWidth="sm" 
+            fullWidth
+            sx={{
+              zIndex: 99999
+            }}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: 2
+              }
+            }}
+          >
+            <DialogTitle sx={{ pb: 1 }}>
+              警告
+            </DialogTitle>
+            <DialogContent sx={{ pb: 2 }}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {replaceWarningText}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                <input
+                  type="checkbox"
+                  id="dontShowAgain"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  style={{ marginRight: 8 }}
+                />
+                <label htmlFor="dontShowAgain" style={{ fontSize: '0.9rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                  今後は表示しない
+                </label>
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={cancelReplace} color="primary">
+                いいえ
+              </Button>
+              <Button onClick={executeReplace} color="error" variant="contained">
+                はい
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Portal>
       </Box>
     );
   } else {
@@ -461,8 +651,6 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
               }}
               fullWidth
               autoFocus
-              error={!!newFolderError}
-              helperText={newFolderError}
             />
           </DialogContent>
           <DialogActions>
@@ -474,6 +662,73 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
             <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>作成</Button>
           </DialogActions>
         </Dialog>
+        
+        {/* エラーToast通知 */}
+        <Portal container={document.body}>
+          <Snackbar
+            open={showErrorToast}
+            autoHideDuration={4000}
+            onClose={() => setShowErrorToast(false)}
+            message={newFolderError}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            sx={{
+              zIndex: 99999,
+              '& .MuiSnackbarContent-root': {
+                backgroundColor: '#d32f2f',
+                color: 'white',
+                fontWeight: 'bold'
+              }
+            }}
+          />
+        </Portal>
+
+        {/* 置換警告モーダル */}
+        <Portal container={document.body}>
+          <Dialog 
+            open={showReplaceWarning} 
+            onClose={cancelReplace}
+            maxWidth="sm" 
+            fullWidth
+            sx={{
+              zIndex: 99999
+            }}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                m: 2
+              }
+            }}
+          >
+            <DialogTitle sx={{ pb: 1 }}>
+              警告
+            </DialogTitle>
+            <DialogContent sx={{ pb: 2 }}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                {replaceWarningText}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
+                <input
+                  type="checkbox"
+                  id="dontShowAgain"
+                  checked={dontShowAgain}
+                  onChange={(e) => setDontShowAgain(e.target.checked)}
+                  style={{ marginRight: 8 }}
+                />
+                <label htmlFor="dontShowAgain" style={{ fontSize: '0.9rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                  今後は表示しない
+                </label>
+              </Box>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={cancelReplace} color="primary">
+                いいえ
+              </Button>
+              <Button onClick={executeReplace} color="error" variant="contained">
+                はい
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Portal>
       </Box>
     );
   }
