@@ -70,7 +70,7 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
   const [pendingReplaceAction, setPendingReplaceAction] = useState<(() => void) | null>(null);
 
   // 自動保存フック
-  const { debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
+  const { debouncedSave, saveImmediately, cleanup } = useAutoSave({ novel, onSave });
 
   useEffect(() => {
     setTitle(novel.title);
@@ -78,6 +78,13 @@ const MobileWritingField: React.FC<MobileWritingFieldProps> = ({
     setSelectedTags(novel.tags);
     setSelectedFolderId(novel.folderId);
   }, [novel]);
+
+  // コンポーネントアンマウント時にcleanupを実行
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   useEffect(() => {
     if (editorMode) {

@@ -8,12 +8,62 @@ declare global {
   }
 }
 
+// API制限管理クラス
+class APIRateLimiter {
+  private requestCount = 0;
+  private resetTime = Date.now() + 100000; // 100秒後
+  private dailyCount = 0;
+  private dailyResetTime = Date.now() + 24 * 60 * 60 * 1000; // 24時間後
+
+  // リクエスト可能かチェック
+  canMakeRequest(): boolean {
+    const now = Date.now();
+    
+    // 100秒制限のリセット
+    if (now > this.resetTime) {
+      this.requestCount = 0;
+      this.resetTime = now + 100000;
+    }
+    
+    // 日次制限のリセット
+    if (now > this.dailyResetTime) {
+      this.dailyCount = 0;
+      this.dailyResetTime = now + 24 * 60 * 60 * 1000;
+    }
+    
+    // 制限チェック
+    return this.requestCount < 900 && this.dailyCount < 9500; // 安全マージン
+  }
+
+  // リクエスト記録
+  recordRequest(): void {
+    this.requestCount++;
+    this.dailyCount++;
+    console.log(`API呼び出し記録: 100秒内 ${this.requestCount}/1000, 日次 ${this.dailyCount}/10000`);
+  }
+
+  // 次のリセットまでの時間を取得
+  getTimeUntilReset(): number {
+    return Math.max(0, this.resetTime - Date.now());
+  }
+
+  // 現在の使用状況を取得
+  getUsage(): { current: number; daily: number; timeUntilReset: number } {
+    return {
+      current: this.requestCount,
+      daily: this.dailyCount,
+      timeUntilReset: this.getTimeUntilReset()
+    };
+  }
+}
+
 /**
  * Google Identity Services (GIS) + gapi でGoogle Drive認証・API利用を行うカスタムフック
  */
 export function useGoogleDriveGIS() {
   const tokenClientRef = useRef<any>(null);
   const isInitializedRef = useRef<boolean>(false);
+  const rateLimiterRef = useRef<APIRateLimiter>(new APIRateLimiter());
 
   // デバッグ用: 環境変数の確認（初回のみ）
   if (!isInitializedRef.current) {
@@ -24,6 +74,26 @@ export function useGoogleDriveGIS() {
     console.log('Environment:', process.env.NODE_ENV);
     isInitializedRef.current = true;
   }
+
+  // API制限チェック
+  const checkRateLimit = (): boolean => {
+    if (!rateLimiterRef.current.canMakeRequest()) {
+      const usage = rateLimiterRef.current.getUsage();
+      console.warn('API制限に達しました:', usage);
+      return false;
+    }
+    return true;
+  };
+
+  // API呼び出し記録
+  const recordAPICall = (): void => {
+    rateLimiterRef.current.recordRequest();
+  };
+
+  // 制限情報取得
+  const getRateLimitInfo = () => {
+    return rateLimiterRef.current.getUsage();
+  };
 
   // gapiの初期化
   const initGapi = async () => {
@@ -66,6 +136,10 @@ export function useGoogleDriveGIS() {
       client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID!,
       scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata',
       callback: () => {}, // 後で差し替え
+      error_callback: (error: any) => {
+        console.log('Token client error:', error);
+        // エラーコールバックは後で設定される
+      }
     });
     console.log('Token client initialized');
   };
@@ -123,13 +197,22 @@ export function useGoogleDriveGIS() {
   };
 
   // サインイン
-  const signIn = async (onSignedIn: () => void) => {
+  const signIn = async (onSignedIn: () => void, onError?: (error: string) => void) => {
     try {
-    await initGapi();
-    if (!tokenClientRef.current) initTokenClient();
+      await initGapi();
+      if (!tokenClientRef.current) initTokenClient();
       
-    tokenClientRef.current.callback = (tokenResponse: any) => {
+      tokenClientRef.current.callback = (tokenResponse: any) => {
         try {
+          // 認証がキャンセルされた場合
+          if (!tokenResponse || tokenResponse.error) {
+            console.log('認証がキャンセルされました:', tokenResponse?.error || 'no response');
+            if (onError) {
+              onError('認証がキャンセルされました');
+            }
+            return;
+          }
+          
           // アクセストークンとリフレッシュトークンを保存
           const tokenData = {
             access_token: tokenResponse.access_token,
@@ -140,24 +223,54 @@ export function useGoogleDriveGIS() {
           // ローカルストレージに保存（セキュリティ上の注意が必要）
           localStorage.setItem('google_drive_token', JSON.stringify(tokenData));
           
-      window.gapi.client.setToken({ access_token: tokenResponse.access_token });
-      onSignedIn();
+          window.gapi.client.setToken({ access_token: tokenResponse.access_token });
+          onSignedIn();
         } catch (tokenError) {
           console.warn('トークン設定エラー（無視可能）:', tokenError);
           // エラーを無視して続行
           onSignedIn();
         }
-    };
+      };
+      
+      // エラーコールバックも設定
+      if (onError) {
+        tokenClientRef.current.error_callback = (error: any) => {
+          console.log('Token client error:', error);
+          
+          // COOPエラーの場合は特別なメッセージを表示
+          if (error && typeof error === 'object' && error.error === 'popup_closed_by_user') {
+            onError('認証ウィンドウが閉じられました。再度お試しください。');
+          } else if (error && typeof error === 'string' && error.includes('COOP')) {
+            onError('ブラウザのセキュリティ設定により認証が中断されました。ポップアップを許可して再度お試しください。');
+          } else {
+            onError('認証エラーが発生しました。再度お試しください。');
+          }
+        };
+      }
       
       try {
-    tokenClientRef.current.requestAccessToken();
+        tokenClientRef.current.requestAccessToken();
       } catch (requestError) {
         console.warn('アクセストークン要求エラー（無視可能）:', requestError);
+        
+        // COOPエラーの場合は特別な処理
+        if (requestError && typeof requestError === 'object' && 
+            ((requestError as any).message?.includes('COOP') || (requestError as any).message?.includes('popup'))) {
+          console.log('COOPエラーが発生しました:', requestError);
+          if (onError) {
+            onError('ブラウザのセキュリティ設定により認証が中断されました。ポップアップを許可して再度お試しください。');
+          }
+          return;
+        }
+        
         // エラーを無視して続行
         onSignedIn();
       }
     } catch (error) {
       console.error('サインインエラー:', error);
+      if (onError) {
+        onError(error instanceof Error ? error.message : 'サインインエラーが発生しました');
+      }
       throw error;
     }
   };
@@ -269,6 +382,11 @@ export function useGoogleDriveGIS() {
 
   // 個別小説の同期（新機能）
   const syncIndividualNovel = async (novel: Novel) => {
+    // API制限チェック
+    if (!checkRateLimit()) {
+      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
+    }
+
     const fileName = `novel-${novel.id}.json`;
     const content = JSON.stringify(novel, null, 2);
     
@@ -276,120 +394,161 @@ export function useGoogleDriveGIS() {
       fileName,
       novelId: novel.id,
       title: novel.title,
-      version: novel.version,
+      bodyLength: novel.body.length,
+      bodyPreview: novel.body.substring(0, 100) + '...',
       dataSize: content.length
     });
     
-    // 既存ファイルを検索
-    const existingFile = await findFileByName(fileName);
-    console.log('既存ファイル検索結果:', existingFile);
-    
-    if (existingFile) {
-      // 既存ファイルを更新
-      console.log('既存ファイルを更新:', existingFile.id);
-      const result = await updateFile(existingFile.id, content);
-      console.log('ファイル更新完了:', result);
-      return result;
-    } else {
-      // 新規ファイルを作成
-      console.log('新規ファイルを作成');
-      const result = await uploadFile(fileName, content);
-      console.log('ファイル作成完了:', result);
-      return result;
+    try {
+      // 既存ファイルを検索
+      recordAPICall();
+      const existingFile = await findFileByName(fileName);
+      console.log('既存ファイル検索結果:', existingFile);
+      
+      if (existingFile) {
+        // 既存ファイルを更新
+        console.log('既存ファイルを更新:', existingFile.id);
+        recordAPICall();
+        const result = await updateFile(existingFile.id, content);
+        console.log('ファイル更新完了:', result);
+        return result;
+      } else {
+        // 新規ファイルを作成
+        console.log('新規ファイルを作成');
+        recordAPICall();
+        const result = await uploadFile(fileName, content);
+        console.log('ファイル作成完了:', result);
+        return result;
+      }
+    } catch (error) {
+      console.error('個別小説同期エラー:', error);
+      throw error;
     }
   };
 
   // 個別小説の取得（新機能）
   const getIndividualNovel = async (novelId: string) => {
+    // API制限チェック
+    if (!checkRateLimit()) {
+      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
+    }
+
     const fileName = `novel-${novelId}.json`;
     console.log('個別小説取得開始:', fileName);
     
-    const existingFile = await findFileByName(fileName);
-    console.log('ファイル検索結果:', existingFile);
-    
-    if (existingFile) {
-      console.log('ファイルをダウンロード:', existingFile.id);
-      const content = await downloadFile(existingFile.id);
-      console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+    try {
+      recordAPICall();
+      const existingFile = await findFileByName(fileName);
+      console.log('ファイル検索結果:', existingFile);
       
-      try {
-        const novel = JSON.parse(content) as Novel;
-        console.log('小説データ解析完了:', {
-          id: novel.id,
-          title: novel.title,
-          version: novel.version,
-          bodyLength: novel.body.length
-        });
-        return novel;
-      } catch (parseError) {
-        console.error('JSON解析エラー:', parseError);
-        console.log('生のコンテンツ:', content.substring(0, 200) + '...');
-        return null;
+      if (existingFile) {
+        console.log('ファイルをダウンロード:', existingFile.id);
+        recordAPICall();
+        const content = await downloadFile(existingFile.id);
+        console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+        
+        try {
+          const novel = JSON.parse(content) as Novel;
+          console.log('小説データ解析完了:', {
+            id: novel.id,
+            title: novel.title,
+            bodyLength: novel.body.length,
+            bodyPreview: novel.body.substring(0, 100) + '...',
+            updatedAt: novel.updatedAt
+          });
+          return novel;
+        } catch (parseError) {
+          console.error('JSON解析エラー:', parseError);
+          console.log('生のコンテンツ:', content.substring(0, 200) + '...');
+          return null;
+        }
       }
+      
+      console.log('ファイルが存在しません');
+      return null;
+    } catch (error) {
+      console.error('個別小説取得エラー:', error);
+      throw error;
     }
-    
-    console.log('ファイルが存在しません');
-    return null;
   };
 
   // 競合解決機能（新機能）
   const resolveConflict = (localNovel: Novel, remoteNovel: Novel): Novel => {
     console.log('競合解決開始:', {
-      localVersion: localNovel.version,
-      remoteVersion: remoteNovel.version,
+      localTitle: localNovel.title,
+      remoteTitle: remoteNovel.title,
+      localBodyLength: localNovel.body.length,
+      remoteBodyLength: remoteNovel.body.length,
       localUpdatedAt: localNovel.updatedAt,
       remoteUpdatedAt: remoteNovel.updatedAt
     });
 
-    // バージョン番号が同じ場合は競合なし
-    if (localNovel.version === remoteNovel.version) {
-      console.log('競合なし - バージョンが同じ');
-      return localNovel;
-    }
-
-    // リモートの方が新しい場合
-    if (remoteNovel.version > localNovel.version) {
-      console.log('リモートの方が新しい - リモートを採用');
-      return {
-        ...remoteNovel,
-        lastSyncAt: new Date().toISOString(),
-        isSyncing: false
-      };
-    }
-
-    // ローカルの方が新しい場合
-    if (localNovel.version > remoteNovel.version) {
-      console.log('ローカルの方が新しい - ローカルを採用');
-      return {
-        ...localNovel,
-        lastSyncAt: new Date().toISOString(),
-        isSyncing: false
-      };
-    }
-
-    // タイムスタンプで比較（バージョンが同じ場合）
+    // 更新日時で比較
     const localTime = new Date(localNovel.updatedAt).getTime();
     const remoteTime = new Date(remoteNovel.updatedAt).getTime();
 
     if (remoteTime > localTime) {
-      console.log('リモートの方が新しい - タイムスタンプ比較');
+      console.log('リモートの方が新しい - 更新日時比較');
+      console.log('リモートデータの詳細:', {
+        title: remoteNovel.title,
+        bodyLength: remoteNovel.body.length,
+        bodyPreview: remoteNovel.body.substring(0, 100) + '...',
+        updatedAt: remoteNovel.updatedAt
+      });
       return {
         ...remoteNovel,
         lastSyncAt: new Date().toISOString(),
         isSyncing: false
       };
-    } else {
-      console.log('ローカルの方が新しい - タイムスタンプ比較');
+    } else if (localTime > remoteTime) {
+      console.log('ローカルの方が新しい - 更新日時比較');
+      console.log('ローカルデータの詳細:', {
+        title: localNovel.title,
+        bodyLength: localNovel.body.length,
+        bodyPreview: localNovel.body.substring(0, 100) + '...',
+        updatedAt: localNovel.updatedAt
+      });
       return {
         ...localNovel,
         lastSyncAt: new Date().toISOString(),
         isSyncing: false
       };
+    } else {
+      // 同じ時刻の場合、本文の内容を比較
+      console.log('更新日時が同じ - 本文の内容を比較');
+      if (localNovel.body !== remoteNovel.body) {
+        // 本文が異なる場合、リモートのデータを優先（より完全なデータ）
+        console.log('本文が異なる - リモートのデータを優先');
+        console.log('リモートデータの詳細:', {
+          title: remoteNovel.title,
+          bodyLength: remoteNovel.body.length,
+          bodyPreview: remoteNovel.body.substring(0, 100) + '...',
+          updatedAt: remoteNovel.updatedAt
+        });
+        return {
+          ...remoteNovel,
+          lastSyncAt: new Date().toISOString(),
+          isSyncing: false
+        };
+      } else {
+        // 本文も同じ場合（真の競合なし）
+        console.log('更新日時と本文が同じ - 真の競合なし');
+        return {
+          ...localNovel,
+          lastSyncAt: new Date().toISOString(),
+          isSyncing: false
+        };
+      }
     }
   };
 
   // 小説データ全体をGoogle Driveに同期（従来の方式 - メタデータ用）
   const syncNovelData = async (novelData: any) => {
+    // API制限チェック
+    if (!checkRateLimit()) {
+      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
+    }
+
     const fileName = 'novel-writer-data.json';
     const content = JSON.stringify(novelData, null, 2);
     
@@ -401,55 +560,75 @@ export function useGoogleDriveGIS() {
       tagCount: novelData.tags?.length || 0
     });
     
-    // 既存ファイルを検索
-    const existingFile = await findFileByName(fileName);
-    console.log('既存ファイル検索結果:', existingFile);
-    
-    if (existingFile) {
-      // 既存ファイルを更新
-      console.log('既存ファイルを更新:', existingFile.id);
-      const result = await updateFile(existingFile.id, content);
-      console.log('ファイル更新完了:', result);
-      return result;
-    } else {
-      // 新規ファイルを作成
-      console.log('新規ファイルを作成');
-      const result = await uploadFile(fileName, content);
-      console.log('ファイル作成完了:', result);
-      return result;
+    try {
+      // 既存ファイルを検索
+      recordAPICall();
+      const existingFile = await findFileByName(fileName);
+      console.log('既存ファイル検索結果:', existingFile);
+      
+      if (existingFile) {
+        // 既存ファイルを更新
+        console.log('既存ファイルを更新:', existingFile.id);
+        recordAPICall();
+        const result = await updateFile(existingFile.id, content);
+        console.log('ファイル更新完了:', result);
+        return result;
+      } else {
+        // 新規ファイルを作成
+        console.log('新規ファイルを作成');
+        recordAPICall();
+        const result = await uploadFile(fileName, content);
+        console.log('ファイル作成完了:', result);
+        return result;
+      }
+    } catch (error) {
+      console.error('メタデータ同期エラー:', error);
+      throw error;
     }
   };
 
   // Google Driveから小説データを取得（従来の方式 - メタデータ用）
   const getNovelData = async () => {
+    // API制限チェック
+    if (!checkRateLimit()) {
+      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
+    }
+
     const fileName = 'novel-writer-data.json';
     console.log('getNovelData 開始:', fileName);
     
-    const existingFile = await findFileByName(fileName);
-    console.log('ファイル検索結果:', existingFile);
-    
-    if (existingFile) {
-      console.log('ファイルをダウンロード:', existingFile.id);
-      const content = await downloadFile(existingFile.id);
-      console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+    try {
+      recordAPICall();
+      const existingFile = await findFileByName(fileName);
+      console.log('ファイル検索結果:', existingFile);
       
-      try {
-        const data = JSON.parse(content);
-        console.log('データ解析完了:', {
-          novelCount: data.novels?.length || 0,
-          folderCount: data.folders?.length || 0,
-          tagCount: data.tags?.length || 0
-        });
-        return data;
-      } catch (parseError) {
-        console.error('JSON解析エラー:', parseError);
-        console.log('生のコンテンツ:', content.substring(0, 200) + '...');
-        return null;
+      if (existingFile) {
+        console.log('ファイルをダウンロード:', existingFile.id);
+        recordAPICall();
+        const content = await downloadFile(existingFile.id);
+        console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+        
+        try {
+          const data = JSON.parse(content);
+          console.log('データ解析完了:', {
+            novelCount: data.novels?.length || 0,
+            folderCount: data.folders?.length || 0,
+            tagCount: data.tags?.length || 0
+          });
+          return data;
+        } catch (parseError) {
+          console.error('JSON解析エラー:', parseError);
+          console.log('生のコンテンツ:', content.substring(0, 200) + '...');
+          return null;
+        }
       }
+      
+      console.log('ファイルが存在しません');
+      return null; // ファイルが存在しない場合
+    } catch (error) {
+      console.error('メタデータ取得エラー:', error);
+      throw error;
     }
-    
-    console.log('ファイルが存在しません');
-    return null; // ファイルが存在しない場合
   };
 
   // サインアウト
@@ -460,6 +639,92 @@ export function useGoogleDriveGIS() {
       console.log('サインアウト完了');
     } catch (error) {
       console.error('サインアウトエラー:', error);
+    }
+  };
+
+  // ファイル削除
+  const deleteFile = async (fileId: string) => {
+    // API制限チェック
+    if (!checkRateLimit()) {
+      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
+    }
+
+    console.log('ファイル削除開始:', fileId);
+    
+    try {
+      recordAPICall();
+      const response = await window.gapi.client.drive.files.delete({
+        fileId: fileId
+      });
+      console.log('ファイル削除完了:', response);
+      return response;
+    } catch (error) {
+      console.error('ファイル削除エラー:', error);
+      throw error;
+    }
+  };
+
+  // 名前でファイルを削除
+  const deleteFileByName = async (fileName: string) => {
+    console.log('名前でファイル削除開始:', fileName);
+    
+    try {
+      const existingFile = await findFileByName(fileName);
+      if (existingFile) {
+        console.log('ファイルを削除:', existingFile.id, existingFile.name);
+        return await deleteFile(existingFile.id);
+      } else {
+        console.log('削除対象のファイルが見つかりません:', fileName);
+        return null;
+      }
+    } catch (error) {
+      console.error('名前でファイル削除エラー:', error);
+      throw error;
+    }
+  };
+
+  // すべての小説関連ファイルを削除
+  const deleteAllNovelFiles = async () => {
+    console.log('すべての小説関連ファイル削除開始');
+    
+    try {
+      // メタデータファイルを削除
+      console.log('メタデータファイルを削除');
+      await deleteFileByName('novel-writer-data.json');
+      
+      // 個別小説ファイルを削除
+      const files = await listFiles();
+      const novelFiles = files.filter((file: any) => 
+        file.name.startsWith('novel-') && file.name.endsWith('.json')
+      );
+      
+      console.log('個別小説ファイル削除:', novelFiles.length + '件');
+      for (const file of novelFiles) {
+        console.log('小説ファイルを削除:', file.name);
+        await deleteFile(file.id);
+      }
+      
+      console.log('すべての小説関連ファイル削除完了');
+    } catch (error) {
+      console.error('すべての小説関連ファイル削除エラー:', error);
+      throw error;
+    }
+  };
+
+  // 個別小説ファイルを削除
+  const deleteIndividualNovel = async (novelId: string) => {
+    console.log('個別小説ファイル削除開始:', novelId);
+    
+    try {
+      const fileName = `novel-${novelId}.json`;
+      console.log('削除対象ファイル:', fileName);
+      
+      const result = await deleteFileByName(fileName);
+      console.log('個別小説ファイル削除完了:', result);
+      return result;
+    } catch (error) {
+      console.error('個別小説ファイル削除エラー:', error);
+      throw error;
     }
   };
 
@@ -477,6 +742,14 @@ export function useGoogleDriveGIS() {
     // 新機能
     syncIndividualNovel,
     getIndividualNovel,
-    resolveConflict
+    resolveConflict,
+    // API制限関連
+    checkRateLimit,
+    recordAPICall,
+    getRateLimitInfo,
+    deleteFile,
+    deleteFileByName,
+    deleteAllNovelFiles,
+    deleteIndividualNovel
   };
 } 

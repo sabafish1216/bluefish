@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Typography,
+  Button,
   FormControl,
   FormControlLabel,
-  RadioGroup,
-  Radio,
   Switch,
+  Typography,
   Box,
-  IconButton,
   Divider,
-  Button,
-  CircularProgress,
-  Snackbar,
   Alert,
+  CircularProgress,
   List,
   ListItem,
   ListItemText,
+  IconButton,
+  RadioGroup,
+  Radio
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -39,7 +38,36 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
   const dispatch = useDispatch();
   const settings = useSelector((state: RootState) => state.settings);
   const theme = useSelector((state: RootState) => state.theme);
-  const { syncStatus, signInToDrive, manualSync } = useGoogleDriveSync();
+  const { syncStatus, signInToDrive, manualSync, getRateLimitInfo, deleteGoogleDriveData } = useGoogleDriveSync();
+  const [rateLimitInfo, setRateLimitInfo] = useState<{ current: number; daily: number; timeUntilReset: number } | null>(null);
+
+  // デバッグ用: 同期状態のログ
+  console.log('SettingsDialog - syncStatus:', {
+    isSyncing: syncStatus.isSyncing,
+    isSignedIn: syncStatus.isSignedIn,
+    lastSyncTime: syncStatus.lastSyncTime,
+    error: syncStatus.error
+  });
+
+  // API制限情報を定期的に更新
+  useEffect(() => {
+    if (syncStatus.isSignedIn) {
+      const updateRateLimitInfo = () => {
+        try {
+          const info = getRateLimitInfo();
+          setRateLimitInfo(info);
+        } catch (error) {
+          console.error('API制限情報取得エラー:', error);
+        }
+      };
+
+      updateRateLimitInfo();
+      const interval = setInterval(updateRateLimitInfo, 10000); // 10秒ごとに更新
+
+      return () => clearInterval(interval);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncStatus.isSignedIn]); // getRateLimitInfoを依存配列から削除
 
   const handleFontSizeChange = (fontSize: string) => {
     dispatch(setFontSize(fontSize as 'small' | 'medium' | 'large'));
@@ -53,16 +81,31 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
     dispatch(toggleTheme());
   };
 
-  const handleResetAllData = () => {
-    if (window.confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
-      dispatch(clearNovels());
-      dispatch(clearFolders());
-      dispatch(clearTags());
-      dispatch(clearSettings());
-      dispatch(resetSyncState());
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.reload();
+  const handleResetAllData = async () => {
+    if (window.confirm('すべてのデータをリセットしますか？この操作は取り消せません。\n\nローカルデータとGoogle Driveのデータの両方が削除されます。')) {
+      try {
+        // Google Driveデータを削除（サインインしている場合）
+        if (syncStatus.isSignedIn) {
+          console.log('Google Driveデータ削除開始');
+          await deleteGoogleDriveData();
+          console.log('Google Driveデータ削除完了');
+        }
+        
+        // ローカルデータを削除
+        dispatch(clearNovels());
+        dispatch(clearFolders());
+        dispatch(clearTags());
+        dispatch(clearSettings());
+        dispatch(resetSyncState());
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        console.log('すべてのデータリセット完了');
+        window.location.reload();
+      } catch (error) {
+        console.error('データリセットエラー:', error);
+        alert('データリセット中にエラーが発生しました。');
+      }
     }
   };
 
@@ -76,7 +119,9 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
 
   const handleManualSync = async () => {
     try {
+      console.log('手動同期ボタンクリック - 同期開始');
       await manualSync();
+      console.log('手動同期ボタンクリック - 同期完了');
     } catch (error) {
       console.error('手動同期エラー:', error);
     }
@@ -143,16 +188,18 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
           ) : (
             <Box>
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <Button 
-                  variant="outlined" 
-                  onClick={handleManualSync}
-                  disabled={syncStatus.isSyncing}
-                >
-                  {syncStatus.isSyncing ? '同期中...' : '手動同期'}
-                </Button>
-                {syncStatus.isSyncing && (
-                  <CircularProgress size={20} />
-                )}
+            <Button 
+              variant="outlined" 
+              onClick={handleManualSync}
+              disabled={syncStatus.isSyncing}
+              startIcon={syncStatus.isSyncing ? <CircularProgress size={16} /> : null}
+              sx={{ minWidth: 120 }}
+            >
+              {syncStatus.isSyncing ? '同期中...' : '手動同期'}
+            </Button>
+            {syncStatus.isSyncing && (
+              <CircularProgress size={20} />
+            )}
           </Box>
               {syncStatus.lastSyncTime && (
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
@@ -167,10 +214,33 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
             </Box>
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            Google Driveにサインインすると、60分ごとに自動同期されます。
-            複数端末でデータを共有できます。
+            Google Driveにサインインすると、アプリ起動時に自動同期されます。
+            手動同期ボタンでいつでも同期できます。複数端末でデータを共有できます。
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+            ※ 初回サインイン時は認証ウィンドウが開きます。ブラウザのポップアップを許可してください。
           </Typography>
         </Box>
+        <Divider sx={{ my: 2 }} />
+        {/* API制限情報 */}
+        <Typography variant="subtitle1" gutterBottom>API制限情報</Typography>
+        {rateLimitInfo ? (
+          <List>
+            <ListItem>
+              <ListItemText primary="現在のリクエスト数" secondary={rateLimitInfo.current} />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="1日のリクエスト制限" secondary={rateLimitInfo.daily} />
+            </ListItem>
+            <ListItem>
+              <ListItemText primary="リセットまでの時間" secondary={`${Math.ceil(rateLimitInfo.timeUntilReset / 60)}分`} />
+            </ListItem>
+          </List>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            リクエスト制限情報は利用可能です。
+          </Typography>
+        )}
         <Divider sx={{ my: 2 }} />
         {/* データリセット */}
         <Typography variant="subtitle1" gutterBottom>データ管理</Typography>

@@ -2,17 +2,14 @@ import { useState, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateNovel } from '../features/novels/novelsSlice';
 import { Novel } from '../features/novels/novelsSlice';
-import { useGoogleDriveSync } from './useGoogleDriveSync';
 
 interface UseAutoSaveProps {
   novel: Novel;
   onSave?: (novel: Novel) => void;
-  enableIndividualSync?: boolean; // 個別同期を有効にするかどうか
 }
 
-export const useAutoSave = ({ novel, onSave, enableIndividualSync = true }: UseAutoSaveProps) => {
+export const useAutoSave = ({ novel, onSave }: UseAutoSaveProps) => {
   const dispatch = useDispatch();
-  const { syncNovel } = useGoogleDriveSync();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -23,30 +20,49 @@ export const useAutoSave = ({ novel, onSave, enableIndividualSync = true }: UseA
     setIsSaving(true);
 
     try {
+      // データが実際に変更されたかチェック
+      const hasChanges = Object.keys(updatedData).some(key => {
+        const currentValue = novel[key as keyof Novel];
+        const newValue = updatedData[key as keyof Novel];
+        
+        // 配列の場合は内容を比較
+        if (Array.isArray(currentValue) && Array.isArray(newValue)) {
+          if (currentValue.length !== newValue.length) return true;
+          return currentValue.some((item, index) => item !== newValue[index]);
+        }
+        
+        // 文字列の場合は内容を比較
+        return currentValue !== newValue;
+      });
+
+      console.log('データ変更チェック:', {
+        hasChanges,
+        updatedFields: Object.keys(updatedData),
+        currentData: Object.keys(updatedData).reduce((acc, key) => {
+          acc[key] = novel[key as keyof Novel];
+          return acc;
+        }, {} as any),
+        newData: updatedData
+      });
+
       const updatedNovel = {
         ...novel,
         ...updatedData,
-        updatedAt: new Date().toISOString()
+        // データが変更された場合のみ更新時刻を更新
+        updatedAt: hasChanges ? new Date().toISOString() : novel.updatedAt
       };
 
-      console.log('保存する小説データ:', updatedNovel);
+      console.log('保存する小説データ:', {
+        ...updatedNovel,
+        updatedAt: updatedNovel.updatedAt,
+        hasChanges
+      });
 
+      // ローカル保存のみ（Google Drive同期は廃止）
       if (onSave) {
         await onSave(updatedNovel);
       } else {
         dispatch(updateNovel(updatedNovel));
-      }
-
-      // 個別同期が有効な場合、Google Driveに同期
-      if (enableIndividualSync) {
-        try {
-          console.log('個別同期を実行:', updatedNovel.id);
-          await syncNovel(updatedNovel);
-          console.log('個別同期完了');
-        } catch (syncError) {
-          console.error('個別同期エラー:', syncError);
-          // 同期エラーは自動保存の失敗とはしない
-        }
       }
 
       setLastSaved(new Date());
@@ -56,7 +72,7 @@ export const useAutoSave = ({ novel, onSave, enableIndividualSync = true }: UseA
     } finally {
       setIsSaving(false);
     }
-  }, [novel, onSave, dispatch, enableIndividualSync, syncNovel]);
+  }, [novel, onSave, dispatch]);
 
   const debouncedSave = useCallback((updatedData: Partial<Novel>) => {
     console.log('debouncedSave呼び出し:', updatedData);
@@ -83,10 +99,18 @@ export const useAutoSave = ({ novel, onSave, enableIndividualSync = true }: UseA
     handleAutoSave(updatedData);
   }, [handleAutoSave]);
 
+  // コンポーネントアンマウント時にタイマーをクリア
+  const cleanup = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+  }, []);
+
   return {
     isSaving,
     lastSaved,
     debouncedSave,
-    saveImmediately
+    saveImmediately,
+    cleanup
   };
 }; 

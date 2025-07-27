@@ -9,7 +9,6 @@ export type Novel = {
   createdAt: string;
   updatedAt: string;
   // 同期用の追加フィールド
-  version: number;           // バージョン番号（競合解決用）
   lastSyncAt: string | null; // 最後の同期時刻
   isSyncing: boolean;        // 同期中フラグ
 };
@@ -33,7 +32,6 @@ const migrateNovel = (novel: any): Novel => {
     folderId: novel.folderId || '',
     createdAt: novel.createdAt || new Date().toISOString(),
     updatedAt: novel.updatedAt || new Date().toISOString(),
-    version: novel.version || 1,
     lastSyncAt: novel.lastSyncAt || null,
     isSyncing: novel.isSyncing || false,
   };
@@ -48,7 +46,6 @@ const novelsSlice = createSlice({
     addNovel: (state, action: PayloadAction<Novel>) => {
       const novel = {
         ...action.payload,
-        version: 1,
         lastSyncAt: null,
         isSyncing: false
       };
@@ -60,8 +57,7 @@ const novelsSlice = createSlice({
         const currentNovel = state.novels[idx];
         state.novels[idx] = {
           ...action.payload,
-          version: currentNovel.version + 1,
-          lastSyncAt: null,
+          lastSyncAt: currentNovel.lastSyncAt, // 既存のlastSyncAtを保持
           isSyncing: false
         };
       }
@@ -90,16 +86,22 @@ const novelsSlice = createSlice({
       }
     },
     // 競合解決用のアクション
-    resolveNovelConflict: (state, action: PayloadAction<{ id: string; novel: Novel; resolvedVersion: number }>) => {
+    resolveNovelConflict: (state, action: PayloadAction<{ id: string; novel: Novel }>) => {
       const idx = state.novels.findIndex(n => n.id === action.payload.id);
       if (idx !== -1) {
         state.novels[idx] = {
           ...action.payload.novel,
-          version: action.payload.resolvedVersion,
           lastSyncAt: new Date().toISOString(),
           isSyncing: false
         };
       }
+    },
+    // 競合解決中の状態を設定
+    setConflictResolutionInProgress: (state, action: PayloadAction<boolean>) => {
+      // 全小説のisSyncingを設定
+      state.novels.forEach(novel => {
+        novel.isSyncing = action.payload;
+      });
     },
     // マイグレーション用のアクション
     migrateNovels: (state) => {
@@ -117,6 +119,7 @@ export const {
   setNovelSyncing,
   setNovelLastSync,
   resolveNovelConflict,
+  setConflictResolutionInProgress,
   migrateNovels
 } = novelsSlice.actions;
 export default novelsSlice.reducer; 

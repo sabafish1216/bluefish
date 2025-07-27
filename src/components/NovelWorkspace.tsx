@@ -54,6 +54,7 @@ import SettingsDialog from './common/SettingsDialog';
 import MobileDrawer from './common/MobileDrawer';
 import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
 import packageJson from '../../package.json';
+import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
 
 const NovelWorkspace: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -78,6 +79,7 @@ const NovelWorkspace: React.FC = () => {
 
   const { isMobile } = useResponsive();
   const muiTheme = useTheme();
+  const { deleteNovelFromDrive, syncStatus } = useGoogleDriveSync();
 
   // カスタムフックの使用
   const { drawerWidth, isResizing, handleMouseDown, handleDoubleClick } = useDrawerResize({
@@ -126,7 +128,7 @@ const NovelWorkspace: React.FC = () => {
     }
   }, [showAnalytics, isMobile]);
 
-  const handleNewNovel = useCallback(() => {
+  const handleCreateNovel = useCallback(() => {
     const now = new Date().toISOString();
     const newNovel = {
       id: Math.random().toString(36).slice(2),
@@ -136,6 +138,9 @@ const NovelWorkspace: React.FC = () => {
       folderId: '',
       createdAt: now,
       updatedAt: now,
+      version: 1,
+      lastSyncAt: null,
+      isSyncing: false,
     };
     dispatch(addNovel(newNovel));
     setSelectedNovelId(newNovel.id);
@@ -147,14 +152,33 @@ const NovelWorkspace: React.FC = () => {
     }
   }, [dispatch, showAnalytics, isMobile]);
 
-  const handleDeleteNovel = useCallback((novelId: string) => {
+  const handleDeleteNovel = useCallback(async (novelId: string) => {
     if (window.confirm('この作品を削除しますか？この操作は取り消せません。')) {
-      dispatch(deleteNovel(novelId));
-      if (selectedNovelId === novelId) {
-        setSelectedNovelId(null);
+      try {
+        // Google Drive連携時はGoogle Driveからも削除
+        if (syncStatus.isSignedIn) {
+          console.log('Google Drive連携時 - Google Driveからも削除');
+          await deleteNovelFromDrive(novelId);
+        } else {
+          console.log('Google Drive未連携時 - ローカル削除のみ');
+        }
+        
+        // ローカルデータを削除
+        dispatch(deleteNovel(novelId));
+        
+        if (selectedNovelId === novelId) {
+          setSelectedNovelId(null);
+        }
+      } catch (error) {
+        console.error('作品削除エラー:', error);
+        // エラーが発生してもローカルデータは削除
+        dispatch(deleteNovel(novelId));
+        if (selectedNovelId === novelId) {
+          setSelectedNovelId(null);
+        }
       }
     }
-  }, [dispatch, selectedNovelId]);
+  }, [dispatch, selectedNovelId, syncStatus.isSignedIn, deleteNovelFromDrive]);
 
   const handleAnalyticsToggle = useCallback(() => {
     setShowAnalytics(!showAnalytics);
@@ -234,7 +258,7 @@ const NovelWorkspace: React.FC = () => {
       icon: AddIcon,
       color: 'success' as const,
       tooltip: '新しい作品を作成',
-      onClick: handleNewNovel
+      onClick: handleCreateNovel
     },
     {
       icon: FolderIcon,
@@ -414,7 +438,7 @@ const NovelWorkspace: React.FC = () => {
           selectedNovelId={selectedNovelId}
           onNovelSelect={handleNovelSelect}
           onDeleteNovel={handleDeleteNovel}
-          onNewNovel={handleNewNovel}
+          onNewNovel={handleCreateNovel}
           onNewFolder={() => setFolderModalOpen(true)}
           onAnalyticsToggle={handleAnalyticsToggle}
           onSettingsOpen={() => setSettingsModalOpen(true)}

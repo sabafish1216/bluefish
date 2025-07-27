@@ -12,8 +12,9 @@ import {
   CloudOff as CloudOffIcon,
 } from '@mui/icons-material';
 import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
+import { setError } from '../features/googleDriveSync/googleDriveSyncSlice';
 
 interface GoogleDriveSyncButtonProps {
   variant?: 'button' | 'icon';
@@ -33,6 +34,7 @@ export const GoogleDriveSyncButton: React.FC<GoogleDriveSyncButtonProps> = ({
 
   // Reduxの同期状況を取得
   const syncStatus = useSelector((state: RootState) => state.googleDriveSync);
+  const dispatch = useDispatch();
 
   const handleSync = async () => {
     if (!syncStatus.isSignedIn) {
@@ -101,8 +103,9 @@ export const GoogleDriveSyncButton: React.FC<GoogleDriveSyncButtonProps> = ({
             open={!!syncStatus.error}
             autoHideDuration={6000}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            onClose={() => dispatch(setError(''))}
           >
-            <Alert severity="error" onClose={() => {}}>
+            <Alert severity="error" onClose={() => dispatch(setError(''))}>
               {syncStatus.error}
             </Alert>
           </Snackbar>
@@ -129,8 +132,9 @@ export const GoogleDriveSyncButton: React.FC<GoogleDriveSyncButtonProps> = ({
           open={!!syncStatus.error}
           autoHideDuration={6000}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          onClose={() => dispatch(setError(''))}
         >
-          <Alert severity="error" onClose={() => {}}>
+          <Alert severity="error" onClose={() => dispatch(setError(''))}>
             {syncStatus.error}
           </Alert>
         </Snackbar>

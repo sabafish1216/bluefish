@@ -1,22 +1,17 @@
 import React, { useMemo } from 'react';
-import { ListItem, ListItemText, ListItemSecondaryAction, IconButton, Chip, Box, Typography, Tooltip } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import { ListItem, ListItemText, ListItemSecondaryAction, IconButton, Chip, Box, Typography, CircularProgress } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import CloudSyncIcon from '@mui/icons-material/CloudSync';
-import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { Novel } from '../features/novels/novelsSlice';
 
 interface Props {
   novel: Novel;
   folderName?: string;
-  onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   isSelected?: boolean;
   onSelect?: (id: string) => void;
   showActions?: boolean;
   drawerWidth?: number;
   tags?: { id: string; name: string }[];
-  showSyncStatus?: boolean; // 同期状態を表示するかどうか
 }
 
 const formatDate = (date: string) => new Date(date).toLocaleDateString();
@@ -24,27 +19,18 @@ const formatDate = (date: string) => new Date(date).toLocaleDateString();
 const NovelListItem: React.FC<Props> = ({ 
   novel, 
   folderName, 
-  onEdit, 
   onDelete, 
   isSelected = false, 
   onSelect, 
   showActions = true,
   drawerWidth = 380,
-  tags = [],
-  showSyncStatus = true
+  tags = []
 }) => {
   const handleClick = React.useCallback(() => {
     if (onSelect) {
       onSelect(novel.id);
     }
   }, [onSelect, novel.id]);
-
-  const handleEdit = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEdit) {
-      onEdit(novel.id);
-    }
-  }, [onEdit, novel.id]);
 
   const handleDelete = React.useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,54 +69,6 @@ const NovelListItem: React.FC<Props> = ({
     return formatDate(novel.updatedAt);
   }, [showFullDate, novel.createdAt, novel.updatedAt]);
 
-  // 同期状態の表示
-  const syncStatus = useMemo(() => {
-    if (!showSyncStatus) return null;
-
-    if (novel.isSyncing) {
-      return (
-        <Tooltip title="同期中...">
-          <CloudSyncIcon 
-            sx={{ 
-              fontSize: 16, 
-              color: 'primary.main',
-              animation: 'spin 1s linear infinite'
-            }} 
-          />
-        </Tooltip>
-      );
-    }
-
-    if (novel.lastSyncAt) {
-      const lastSync = new Date(novel.lastSyncAt);
-      const now = new Date();
-      const timeDiff = now.getTime() - lastSync.getTime();
-      const isRecent = timeDiff < 5 * 60 * 1000; // 5分以内
-
-      return (
-        <Tooltip title={`最終同期: ${lastSync.toLocaleString()}`}>
-          <CloudSyncIcon 
-            sx={{ 
-              fontSize: 16, 
-              color: isRecent ? 'success.main' : 'warning.main'
-            }} 
-          />
-        </Tooltip>
-      );
-    }
-
-    return (
-      <Tooltip title="未同期">
-        <CloudOffIcon 
-          sx={{ 
-            fontSize: 16, 
-            color: 'text.disabled'
-          }} 
-        />
-      </Tooltip>
-    );
-  }, [novel.isSyncing, novel.lastSyncAt, showSyncStatus]);
-
   return (
     <ListItem 
       divider 
@@ -161,7 +99,15 @@ const NovelListItem: React.FC<Props> = ({
             >
               {novel.title}
             </Typography>
-            {syncStatus}
+            {novel.isSyncing && (
+              <CircularProgress 
+                size={16} 
+                sx={{ 
+                  color: 'primary.main',
+                  ml: 1
+                }} 
+              />
+            )}
           </Box>
         }
         secondary={
@@ -169,6 +115,7 @@ const NovelListItem: React.FC<Props> = ({
             <Typography 
               variant="body2" 
               color="text.secondary" 
+              component="span"
               sx={{ 
                 mb: 1,
                 display: '-webkit-box',
@@ -213,14 +160,10 @@ const NovelListItem: React.FC<Props> = ({
             <Typography 
               variant="caption" 
               color="text.secondary"
+              component="span"
               sx={{ fontSize: '0.7rem' }}
             >
               {dateText}
-              {novel.version > 1 && (
-                <span style={{ marginLeft: 8 }}>
-                  v{novel.version}
-                </span>
-              )}
             </Typography>
           </Box>
         }
@@ -229,17 +172,6 @@ const NovelListItem: React.FC<Props> = ({
       {showActions && (
         <ListItemSecondaryAction>
           <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <IconButton 
-              edge="end" 
-              size="small"
-              onClick={handleEdit}
-              sx={{ 
-                color: 'primary.main',
-                '&:hover': { bgcolor: 'primary.light' }
-              }}
-            >
-              <EditIcon sx={{ fontSize: 18 }} />
-            </IconButton>
             <IconButton 
               edge="end" 
               size="small"

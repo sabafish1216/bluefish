@@ -10,10 +10,8 @@ import {
 } from '../features/googleDriveSync/googleDriveSyncSlice';
 import { 
   setNovels, 
-  setNovelSyncing, 
-  setNovelLastSync, 
+  addNovel,
   resolveNovelConflict,
-  updateNovel,
   migrateNovels
 } from '../features/novels/novelsSlice';
 import { setFolders } from '../features/folders/foldersSlice';
@@ -23,16 +21,17 @@ import { Novel } from '../features/novels/novelsSlice';
 
 export function useGoogleDriveSync() {
   const dispatch = useDispatch();
-  const { 
-    syncNovelData, 
-    getNovelData, 
-    syncIndividualNovel, 
-    getIndividualNovel, 
-    resolveConflict,
-    signIn, 
-    checkAuthStatus 
+  const {
+    syncIndividualNovel,
+    getIndividualNovel,
+    syncNovelData,
+    getNovelData,
+    signIn,
+    checkAuthStatus,
+    getRateLimitInfo,
+    deleteAllNovelFiles,
+    deleteIndividualNovel
   } = useGoogleDriveGIS();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef(false);
 
   // Reduxの状態を取得
@@ -52,7 +51,6 @@ export function useGoogleDriveSync() {
         folderId: novel.folderId,
         createdAt: novel.createdAt,
         updatedAt: novel.updatedAt,
-        version: novel.version,
         lastSyncAt: novel.lastSyncAt,
         bodyLength: novel.body.length
       })),
@@ -63,75 +61,9 @@ export function useGoogleDriveSync() {
     };
   }, [novels, folders, tags, settings]);
 
-  // 個別小説の同期
-  const syncNovel = useCallback(async (novel: Novel) => {
-    if (!syncStatus.isSignedIn) return;
-    
-    console.log('個別小説同期開始:', {
-      id: novel.id,
-      title: novel.title,
-      version: novel.version
-    });
 
-    try {
-      dispatch(setNovelSyncing({ id: novel.id, isSyncing: true }));
-      
-      // リモートの小説データを取得して競合チェック
-      const remoteNovel = await getIndividualNovel(novel.id);
-      
-      if (remoteNovel) {
-        // 競合解決
-        const resolvedNovel = resolveConflict(novel, remoteNovel);
-        
-        if (resolvedNovel.id !== novel.id || resolvedNovel.version !== novel.version) {
-          // 競合が解決された場合、ローカルを更新
-          console.log('競合解決 - ローカルを更新');
-          dispatch(resolveNovelConflict({ 
-            id: novel.id, 
-            novel: resolvedNovel, 
-            resolvedVersion: Math.max(novel.version, remoteNovel.version) + 1 
-          }));
-          
-          // 解決されたデータを同期
-          await syncIndividualNovel(resolvedNovel);
-        } else {
-          // 競合なし、ローカルデータを同期
-          await syncIndividualNovel(novel);
-        }
-      } else {
-        // リモートに存在しない場合、新規同期
-        await syncIndividualNovel(novel);
-      }
-      
-      dispatch(setNovelLastSync({ 
-        id: novel.id, 
-        lastSyncAt: new Date().toISOString() 
-      }));
-      dispatch(setNovelSyncing({ id: novel.id, isSyncing: false }));
-      
-      console.log('個別小説同期完了:', novel.id);
-    } catch (error) {
-      console.error('個別小説同期エラー:', error);
-      dispatch(setNovelSyncing({ id: novel.id, isSyncing: false }));
-      dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
-    }
-  }, [syncStatus.isSignedIn, getIndividualNovel, resolveConflict, syncIndividualNovel, dispatch]);
 
-  // 変更された小説のみ同期
-  const syncChangedNovels = useCallback(async () => {
-    if (!syncStatus.isSignedIn) return;
-    
-    const changedNovels = novels.filter(novel => 
-      !novel.lastSyncAt || 
-      new Date(novel.updatedAt) > new Date(novel.lastSyncAt)
-    );
-    
-    console.log('変更された小説を同期:', changedNovels.length + '件');
-    
-    for (const novel of changedNovels) {
-      await syncNovel(novel);
-    }
-  }, [syncStatus.isSignedIn, novels, syncNovel]);
+
 
   // メタデータの同期
   const syncMetadata = useCallback(async () => {
@@ -148,251 +80,317 @@ export function useGoogleDriveSync() {
     }
   }, [syncStatus.isSignedIn, getMetadata, syncNovelData, dispatch]);
 
-  // Google Driveに同期（個別同期 + メタデータ同期）
-  const syncToDrive = useCallback(async () => {
+  // 完全な双方向同期（要件に基づく）
+  const fullBidirectionalSync = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
-    console.log('Google Drive同期開始:', new Date().toLocaleString());
+    
+    console.log('=== 完全な双方向同期開始 ===');
     
     try {
-      dispatch(setIsSyncing(true));
-      dispatch(setError(null));
-      
-      // 変更された小説を個別同期
-      await syncChangedNovels();
-      
-      // メタデータを同期
-      await syncMetadata();
-      
-      dispatch(setIsSyncing(false));
-      dispatch(setLastSyncTime(new Date().toISOString()));
-      dispatch(setError(null));
-      console.log('Google Drive同期完了:', new Date().toLocaleString());
-    } catch (error) {
-      console.error('Google Drive同期エラー:', error);
-      dispatch(setIsSyncing(false));
-      dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
-    }
-  }, [syncStatus.isSignedIn, syncChangedNovels, syncMetadata, dispatch]);
-
-  // Google Driveからデータを取得
-  const syncFromDrive = useCallback(async () => {
-    if (!syncStatus.isSignedIn) return;
-    console.log('=== syncFromDrive 実行開始 ===');
-    console.log('syncFromDrive 実行開始:', new Date().toLocaleString());
-    
-    // 認証状態を再確認
-    const isAuthenticated = await checkAuthStatus();
-    if (!isAuthenticated) {
-      console.log('認証状態が無効のため、同期をスキップ');
-      dispatch(setIsSyncing(false));
-      dispatch(setIsSignedIn(false));
-      dispatch(setError('認証が必要です。Google Driveにサインインしてください。'));
-      return;
-    }
-    
-    try {
-      dispatch(setIsSyncing(true));
-      dispatch(setError(null));
-      
-      // メタデータを取得
+      // ①Google Driveからデータ取得
       const metadata = await getNovelData();
-      if (metadata) {
-        console.log('メタデータを取得:', {
-          novelCount: metadata.novels?.length || 0,
-          folderCount: metadata.folders?.length || 0
+      const remoteNovels: Novel[] = [];
+      
+      if (metadata && metadata.novels) {
+        console.log('Google Driveから小説メタデータを取得:', metadata.novels.length + '件');
+        
+        // 各小説の完全なデータを取得
+        for (const novelMeta of metadata.novels) {
+          try {
+            const remoteNovel = await getIndividualNovel(novelMeta.id);
+            if (remoteNovel) {
+              remoteNovels.push(remoteNovel);
+              console.log(`小説「${remoteNovel.title}」をGoogle Driveから取得 (本文: ${remoteNovel.body.length}文字)`);
+            }
+          } catch (error) {
+            console.error(`小説 ${novelMeta.id} の取得エラー:`, error);
+          }
+        }
+      }
+      
+      // ②ローカルストレージ内のデータと、Google Driveで取得したデータを比較（作品ごとに）
+      console.log('=== 競合解決開始 ===');
+      
+      // ローカルに存在する小説のIDセット
+      const localNovelIds = new Set(novels.map(n => n.id));
+      // Google Driveに存在する小説のIDセット
+      const remoteNovelIds = new Set(remoteNovels.map(n => n.id));
+      
+      // すべての小説IDを取得
+      const allNovelIds = Array.from(new Set([...Array.from(localNovelIds), ...Array.from(remoteNovelIds)]));
+      
+      const novelsToAdd: Novel[] = [];
+      const novelsToUpdate: Novel[] = [];
+      const novelsToUpload: Novel[] = [];
+      
+      for (const novelId of allNovelIds) {
+        const localNovel = novels.find(n => n.id === novelId);
+        const remoteNovel = remoteNovels.find(n => n.id === novelId);
+        
+        console.log(`小説ID ${novelId} の競合解決:`, {
+          localExists: !!localNovel,
+          remoteExists: !!remoteNovel,
+          localTitle: localNovel?.title,
+          remoteTitle: remoteNovel?.title
         });
         
-        // フォルダ、タグ、設定を更新
-        if (metadata.folders) {
-          console.log('フォルダデータを設定:', metadata.folders.length + '件');
-          dispatch(setFolders(metadata.folders));
-        }
-        if (metadata.tags) {
-          console.log('タグデータを設定:', metadata.tags.length + '件');
-          dispatch(setTags(metadata.tags));
-        }
-        if (metadata.settings) {
-          console.log('設定データを設定');
-          dispatch(setSettings(metadata.settings));
-        }
-        
-        // 各小説を個別に取得して競合解決
-        if (metadata.novels) {
-          console.log('小説データを個別取得開始:', metadata.novels.length + '件');
+        if (remoteNovel && !localNovel) {
+          // ケースA：Google Driveに存在し、ローカルストレージに存在しない作品
+          console.log(`ケースA: 小説「${remoteNovel.title}」をローカルに追加 (本文: ${remoteNovel.body.length}文字)`);
+          novelsToAdd.push({
+            ...remoteNovel,
+            lastSyncAt: new Date().toISOString(),
+            isSyncing: false
+          });
+        } else if (!remoteNovel && localNovel) {
+          // ケースB：Google Driveに存在せず、ローカルストレージに存在する作品
+          console.log(`ケースB: 小説「${localNovel.title}」をGoogle Driveにアップロード (本文: ${localNovel.body.length}文字)`);
+          novelsToUpload.push(localNovel);
+        } else if (remoteNovel && localNovel) {
+          // ケースC：Google Driveにも、ローカルストレージにも存在する作品
+          console.log(`ケースC: 小説「${localNovel.title}」の最終更新日時を比較 (ローカル本文: ${localNovel.body.length}文字, リモート本文: ${remoteNovel.body.length}文字)`);
           
-          for (const novelMeta of metadata.novels) {
-            try {
-              const remoteNovel = await getIndividualNovel(novelMeta.id);
-              
-              if (remoteNovel) {
-                // ローカルの小説を取得
-                const localNovel = novels.find(n => n.id === novelMeta.id);
-                
-                if (localNovel) {
-                  // 競合解決
-                  const resolvedNovel = resolveConflict(localNovel, remoteNovel);
-                  dispatch(resolveNovelConflict({
-                    id: novelMeta.id,
-                    novel: resolvedNovel,
-                    resolvedVersion: Math.max(localNovel.version, remoteNovel.version)
-                  }));
-                } else {
-                  // ローカルに存在しない場合、リモートを追加
-                  dispatch(updateNovel({
-                    ...remoteNovel,
-                    lastSyncAt: new Date().toISOString(),
-                    isSyncing: false
-                  }));
-                }
-              }
-            } catch (error) {
-              console.error(`小説 ${novelMeta.id} の取得エラー:`, error);
+          const localTime = new Date(localNovel.updatedAt).getTime();
+          const remoteTime = new Date(remoteNovel.updatedAt).getTime();
+          
+          if (remoteTime > localTime) {
+            // Google Driveのデータが新しい場合
+            console.log(`Google Driveのデータが新しい - ローカルを更新 (リモート本文: ${remoteNovel.body.length}文字)`);
+            novelsToUpdate.push({
+              ...remoteNovel,
+              lastSyncAt: new Date().toISOString(),
+              isSyncing: false
+            });
+          } else if (localTime > remoteTime) {
+            // ローカルストレージのデータが新しい場合
+            console.log(`ローカルのデータが新しい - Google Driveを更新 (ローカル本文: ${localNovel.body.length}文字)`);
+            novelsToUpload.push(localNovel);
+          } else {
+            // 同じ時刻の場合、本文の内容を比較
+            console.log(`更新日時が同じ - 本文の内容を比較`);
+            if (localNovel.body !== remoteNovel.body) {
+              // 本文が異なる場合、リモートのデータを優先（より完全なデータ）
+              console.log(`本文が異なる - リモートのデータを優先 (ローカル: ${localNovel.body.length}文字, リモート: ${remoteNovel.body.length}文字)`);
+              novelsToUpdate.push({
+                ...remoteNovel,
+                lastSyncAt: new Date().toISOString(),
+                isSyncing: false
+              });
+            } else {
+              // 本文も同じ場合（真の競合なし）
+              console.log(`更新日時と本文が同じ - 真の競合なし (本文: ${localNovel.body.length}文字)`);
             }
           }
         }
       }
       
-      dispatch(setIsSyncing(false));
-      dispatch(setLastSyncTime(new Date().toISOString()));
-      dispatch(setError(null));
-      console.log('Google Driveからの取得完了:', new Date().toLocaleString());
-    } catch (error) {
-      console.error('Google Driveからの取得エラー:', error);
-      dispatch(setIsSyncing(false));
+      // ③処理の実行
+      console.log('=== 処理実行開始 ===');
       
-      // エラーメッセージを詳細化
-      let errorMessage = 'データ取得エラーが発生しました';
-      
-      if (error && typeof error === 'object' && 'result' in error && error.result && typeof error.result === 'object' && 'error' in error.result) {
-        const apiError = (error.result as any).error;
-        console.log('APIエラー詳細:', apiError);
-        
-        if (apiError.code === 403) {
-          if (apiError.message && apiError.message.includes('insufficientFilePermissions')) {
-            errorMessage = 'Google Drive APIの権限が不足しています。OAuth同意画面の設定とテストユーザーの追加を確認してください。';
-          } else if (apiError.message && apiError.message.includes('blocked')) {
-            errorMessage = 'APIキーが制限されています。HTTPリファラーの設定を確認してください。';
-          } else {
-            errorMessage = 'Google Drive APIへのアクセスが拒否されました。APIキーの設定を確認してください。';
-          }
-        } else if (apiError.code === 401) {
-          errorMessage = '認証が無効です。再度サインインしてください。';
-        }
-      } else if (error instanceof Error) {
-        if (error.message.includes('403') || error.message.includes('insufficientFilePermissions')) {
-          errorMessage = 'Google Drive APIの設定に問題があります。管理者に連絡してください。';
-        } else {
-          errorMessage = error.message;
-        }
+      // ケースA: ローカルに追加
+      for (const novel of novelsToAdd) {
+        console.log(`小説「${novel.title}」をローカルに追加 (本文: ${novel.body.length}文字)`);
+        dispatch(addNovel(novel));
       }
       
-      dispatch(setError(errorMessage));
+      // ケースC: ローカルを更新
+      for (const novel of novelsToUpdate) {
+        console.log(`小説「${novel.title}」をローカルで更新 (本文: ${novel.body.length}文字)`);
+        dispatch(resolveNovelConflict({
+          id: novel.id,
+          novel: novel
+        }));
+      }
+      
+      // ケースB, C: Google Driveにアップロード
+      for (const novel of novelsToUpload) {
+        console.log(`小説「${novel.title}」をGoogle Driveにアップロード (本文: ${novel.body.length}文字)`);
+        await syncIndividualNovel(novel);
+      }
+      
+      // メタデータを同期
+      console.log('メタデータを同期');
+      await syncMetadata();
+      
+      console.log('=== 完全な双方向同期完了 ===');
+      
+    } catch (error) {
+      console.error('完全な双方向同期エラー:', error);
+      throw error;
     }
-  }, [syncStatus.isSignedIn, getNovelData, getIndividualNovel, resolveConflict, novels, dispatch]);
+  }, [syncStatus.isSignedIn, getNovelData, getIndividualNovel, novels, syncIndividualNovel, syncMetadata, dispatch]);
 
   // 手動同期
   const manualSync = useCallback(async () => {
     console.log('手動同期を実行:', new Date().toLocaleString());
-    await syncToDrive();
-  }, [syncToDrive]);
-
-  // 5分ごとの自動同期を開始
-  const startAutoSync = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    
+    if (!syncStatus.isSignedIn) return;
+    
+    try {
+      dispatch(setIsSyncing(true));
+      dispatch(setError(null));
+      
+      // 完全な双方向同期を実行
+      await fullBidirectionalSync();
+      
+      dispatch(setIsSyncing(false));
+      dispatch(setLastSyncTime(new Date().toISOString()));
+      dispatch(setError(null));
+      console.log('手動同期完了:', new Date().toLocaleString());
+    } catch (error) {
+      console.error('手動同期エラー:', error);
+      dispatch(setIsSyncing(false));
+      dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
     }
-    console.log('自動同期を開始 - 5分間隔');
-    intervalRef.current = setInterval(() => {
-      console.log('自動同期を実行 - 5分間隔');
-      syncToDrive();
-    }, 5 * 60 * 1000); // 5分
-  }, [syncToDrive]);
-
-  // 自動同期を停止
-  const stopAutoSync = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
+  }, [syncStatus.isSignedIn, fullBidirectionalSync, dispatch]);
 
   // Google Driveにサインイン
   const signInToDrive = useCallback(async () => {
     try {
+      console.log('Google Driveサインイン開始');
+      dispatch(setIsSyncing(true));
+      dispatch(setError(null));
+      
       // 既存のトークンをクリア
       if (window.gapi && window.gapi.client) {
         window.gapi.client.setToken(null);
       }
       
-      await signIn(async () => {
-        dispatch(setIsSignedIn(true));
-        dispatch(setError(null)); // エラーをクリア
-        
-        // 保留中の同期データがあるかチェック
-        const pendingSyncData = localStorage.getItem('pending_sync_data');
-        const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
-        
-        if (pendingSyncData && pendingSyncTimestamp) {
-          console.log('保留中の同期データを確認');
+      await signIn(
+        async () => {
+          console.log('Google Drive認証完了 - 同期処理を開始');
+          dispatch(setIsSignedIn(true));
+          dispatch(setError(null)); // エラーをクリア
+          
           try {
-            const pendingData = JSON.parse(pendingSyncData);
-            const pendingTime = parseInt(pendingSyncTimestamp);
+            // 保留中の同期データがあるかチェック
+            const pendingSyncData = localStorage.getItem('pending_sync_data');
+            const pendingSyncTimestamp = localStorage.getItem('pending_sync_timestamp');
             
-            console.log('保留データの詳細:', {
-              timestamp: new Date(pendingTime).toLocaleString(),
-              novelCount: pendingData.novels?.length || 0,
-              folderCount: pendingData.folders?.length || 0
-            });
+            if (pendingSyncData && pendingSyncTimestamp) {
+              console.log('保留中の同期データを確認');
+              try {
+                const pendingData = JSON.parse(pendingSyncData);
+                const pendingTime = parseInt(pendingSyncTimestamp);
+                
+                console.log('保留データの詳細:', {
+                  timestamp: new Date(pendingTime).toLocaleString(),
+                  novelCount: pendingData.novels?.length || 0,
+                  folderCount: pendingData.folders?.length || 0
+                });
+                
+                // 保留データを直接Reduxに反映（新しいデータを優先）
+                console.log('保留データをReduxに反映');
+                if (pendingData.novels) dispatch(setNovels(pendingData.novels));
+                if (pendingData.folders) dispatch(setFolders(pendingData.folders));
+                if (pendingData.tags) dispatch(setTags(pendingData.tags));
+                if (pendingData.settings) dispatch(setSettings(pendingData.settings));
+                
+                // 保留データをGoogle Driveに同期
+                console.log('保留データをGoogle Driveに同期開始');
+                dispatch(setIsSyncing(true));
+                try {
+                  await fullBidirectionalSync();
+                  console.log('保留データの同期完了');
+                } finally {
+                  dispatch(setIsSyncing(false));
+                  dispatch(setLastSyncTime(new Date().toISOString()));
+                }
+                
+                // 保留データを削除
+                localStorage.removeItem('pending_sync_data');
+                localStorage.removeItem('pending_sync_timestamp');
+                
+                console.log('Google Drive連携完了 - 保留データの同期処理完了');
+                return; // ここで終了（syncFromDriveは実行しない）
+              } catch (error) {
+                console.error('保留データの処理エラー:', error);
+                // エラーの場合は保留データを削除
+                localStorage.removeItem('pending_sync_data');
+                localStorage.removeItem('pending_sync_timestamp');
+              }
+            }
             
-            // 保留データを直接Reduxに反映（新しいデータを優先）
-            console.log('保留データをReduxに反映');
-            if (pendingData.novels) dispatch(setNovels(pendingData.novels));
-            if (pendingData.folders) dispatch(setFolders(pendingData.folders));
-            if (pendingData.tags) dispatch(setTags(pendingData.tags));
-            if (pendingData.settings) dispatch(setSettings(pendingData.settings));
+            // 保留データがない場合のみGoogle Driveからデータを取得
+            console.log('保留データがないため、Google Driveからデータを取得');
+            await fullBidirectionalSync();
+            console.log('Google Drive連携完了 - 初回同期処理完了');
             
-            // 保留データをGoogle Driveに同期
-            console.log('保留データをGoogle Driveに同期');
-            await syncToDrive();
-            console.log('保留データの同期完了');
-            
-            // 保留データを削除
-            localStorage.removeItem('pending_sync_data');
-            localStorage.removeItem('pending_sync_timestamp');
-            
-            // 自動同期を開始
-            startAutoSync();
-            return; // ここで終了（syncFromDriveは実行しない）
-          } catch (error) {
-            console.error('保留データの処理エラー:', error);
-            // エラーの場合は保留データを削除
-            localStorage.removeItem('pending_sync_data');
-            localStorage.removeItem('pending_sync_timestamp');
+          } catch (syncError) {
+            console.error('Google Drive連携後の同期処理エラー:', syncError);
+            dispatch(setError(syncError instanceof Error ? syncError.message : '同期処理エラーが発生しました'));
+          } finally {
+            dispatch(setIsSyncing(false));
+            dispatch(setLastSyncTime(new Date().toISOString()));
           }
+        },
+        (error: string) => {
+          // 認証キャンセルまたはエラー時の処理
+          console.log('認証プロセスが中断されました:', error);
+          dispatch(setIsSyncing(false));
+          dispatch(setError(null)); // エラーをクリア（キャンセルは正常な動作）
         }
-        
-        // 保留データがない場合のみGoogle Driveからデータを取得
-        console.log('保留データがないため、Google Driveからデータを取得');
-        syncFromDrive();
-        startAutoSync();
-      });
+      );
     } catch (error) {
       console.error('Google Driveサインインエラー:', error);
+      dispatch(setIsSyncing(false));
       dispatch(setError(error instanceof Error ? error.message : 'サインインエラーが発生しました'));
     }
-  }, [signIn, syncFromDrive, startAutoSync, dispatch]);
+  }, [signIn, fullBidirectionalSync, dispatch]);
 
-  // ネットワーク復帰時の同期
-  useEffect(() => {
-    const handleOnline = () => {
-      if (syncStatus.isSignedIn) {
-        console.log('ネットワーク復帰 - 同期を実行');
-        syncToDrive();
-      }
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [syncStatus.isSignedIn, syncToDrive]);
+  // Google Driveデータ削除
+  const deleteGoogleDriveData = useCallback(async () => {
+    if (!syncStatus.isSignedIn) {
+      console.log('Google Driveにサインインしていないため、削除をスキップ');
+      return;
+    }
+    
+    console.log('Google Driveデータ削除開始');
+    
+    try {
+      dispatch(setIsSyncing(true));
+      dispatch(setError(null));
+      
+      // すべての小説関連ファイルを削除
+      await deleteAllNovelFiles();
+      
+      console.log('Google Driveデータ削除完了');
+    } catch (error) {
+      console.error('Google Driveデータ削除エラー:', error);
+      dispatch(setError(error instanceof Error ? error.message : 'Google Driveデータ削除エラーが発生しました'));
+    } finally {
+      dispatch(setIsSyncing(false));
+    }
+  }, [syncStatus.isSignedIn, deleteAllNovelFiles, dispatch]);
+
+  // 個別小説削除（ローカル + Google Drive）
+  const deleteNovelFromDrive = useCallback(async (novelId: string) => {
+    if (!syncStatus.isSignedIn) {
+      console.log('Google Driveにサインインしていないため、ローカル削除のみ実行');
+      return;
+    }
+    
+    console.log('個別小説削除開始:', novelId);
+    
+    try {
+      dispatch(setIsSyncing(true));
+      dispatch(setError(null));
+      
+      // Google Driveから個別小説ファイルを削除
+      await deleteIndividualNovel(novelId);
+      
+      // メタデータを更新（削除された小説を除外）
+      console.log('メタデータを更新（削除された小説を除外）');
+      await syncMetadata();
+      
+      console.log('個別小説削除完了:', novelId);
+    } catch (error) {
+      console.error('個別小説削除エラー:', error);
+      dispatch(setError(error instanceof Error ? error.message : 'Google Driveからの削除エラーが発生しました'));
+    } finally {
+      dispatch(setIsSyncing(false));
+    }
+  }, [syncStatus.isSignedIn, deleteIndividualNovel, syncMetadata, dispatch]);
 
   // アプリ終了時の同期
   useEffect(() => {
@@ -402,9 +400,15 @@ export function useGoogleDriveSync() {
         
         // 同期的な同期処理（非同期処理は完了しないため）
         try {
-          // 現在のデータを取得
-          const currentData = getMetadata();
-          const content = JSON.stringify(currentData, null, 2);
+          // 完全なデータを取得（本文含む）
+          const completeData = {
+            novels: novels, // 完全な小説データ（本文含む）
+            folders,
+            tags,
+            settings,
+            lastSync: new Date().toISOString(),
+          };
+          const content = JSON.stringify(completeData, null, 2);
           
           // ローカルストレージに一時保存（次回起動時に同期）
           localStorage.setItem('pending_sync_data', content);
@@ -412,7 +416,8 @@ export function useGoogleDriveSync() {
           
           console.log('アプリ終了時の同期データを保存:', {
             dataSize: content.length,
-            novelCount: currentData.novels?.length || 0,
+            novelCount: completeData.novels?.length || 0,
+            novelBodyLengths: completeData.novels?.map(n => ({ id: n.id, title: n.title, bodyLength: n.body.length })) || [],
             timestamp: new Date().toLocaleString()
           });
         } catch (error) {
@@ -421,29 +426,13 @@ export function useGoogleDriveSync() {
       }
     };
     
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && syncStatus.isSignedIn) {
-        console.log('ページ非表示 - 同期を実行');
-        // ページが非表示になった時も同期
-        syncToDrive();
-      }
-    };
-    
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [syncStatus.isSignedIn, getMetadata, syncToDrive]);
-
-  // コンポーネントアンマウント時に自動同期を停止
-  useEffect(() => {
-    return () => {
-      stopAutoSync();
-    };
-  }, [stopAutoSync]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncStatus.isSignedIn, getMetadata]);
 
   // アプリ起動時の認証状態チェックとデータ同期
   useEffect(() => {
@@ -485,20 +474,28 @@ export function useGoogleDriveSync() {
               timestamp: new Date(pendingTime).toLocaleString(),
               novelCount: pendingData.novels?.length || 0,
               folderCount: pendingData.folders?.length || 0,
-              novelTitles: pendingData.novels?.map((n: any) => n.title).slice(0, 3) || []
+              novelTitles: pendingData.novels?.map((n: any) => n.title).slice(0, 3) || [],
+              novelBodyLengths: pendingData.novels?.map((n: any) => ({ id: n.id, title: n.title, bodyLength: n.body?.length || 0 })).slice(0, 3) || []
             });
             
             // 現在のRedux状態を確認
             const currentData = getMetadata();
             console.log('現在のRedux状態:', {
               novelCount: currentData.novels?.length || 0,
-              novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
+              novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || [],
+              novelBodyLengths: novels.map(n => ({ id: n.id, title: n.title, bodyLength: n.body.length })).slice(0, 3)
             });
             
             // 保留データを直接Reduxに反映（新しいデータを優先）
             console.log('保留データをReduxに反映開始');
             if (pendingData.novels) {
               console.log('小説データを設定:', pendingData.novels.length + '件');
+              console.log('設定する小説データの詳細:', pendingData.novels.map((n: any) => ({
+                id: n.id,
+                title: n.title,
+                bodyLength: n.body?.length || 0,
+                bodyPreview: n.body?.substring(0, 50) + '...' || 'なし'
+              })));
               dispatch(setNovels(pendingData.novels));
             }
             if (pendingData.folders) {
@@ -517,16 +514,20 @@ export function useGoogleDriveSync() {
             
             // 保留データをGoogle Driveに同期
             console.log('保留データをGoogle Driveに同期開始');
-            await syncToDrive();
-            console.log('保留データの同期完了');
+            dispatch(setIsSyncing(true));
+            try {
+              await fullBidirectionalSync();
+              console.log('保留データの同期完了');
+            } finally {
+              dispatch(setIsSyncing(false));
+              dispatch(setLastSyncTime(new Date().toISOString()));
+            }
             
             // 保留データを削除
             localStorage.removeItem('pending_sync_data');
             localStorage.removeItem('pending_sync_timestamp');
             console.log('保留データを削除完了');
             
-            // 自動同期を開始
-            startAutoSync();
             console.log('=== 保留データ処理完了（syncFromDriveは実行しない）===');
             return; // ここで終了（syncFromDriveは実行しない）
           } catch (error) {
@@ -542,19 +543,36 @@ export function useGoogleDriveSync() {
           dispatch(setIsSignedIn(true));
           
           try {
-            await syncFromDrive();
-            startAutoSync();
+            console.log('Google Drive連携完了 - 初回同期処理開始');
+            dispatch(setIsSyncing(true));
+            try {
+              await fullBidirectionalSync();
+              console.log('Google Drive連携完了 - 初回同期処理完了');
+            } finally {
+              dispatch(setIsSyncing(false));
+              dispatch(setLastSyncTime(new Date().toISOString()));
+            }
           } catch (syncError) {
             console.error('同期エラー - 認証状態をリセット:', syncError);
+            dispatch(setIsSyncing(false));
             dispatch(setIsSignedIn(false));
             dispatch(setError('認証が期限切れです。再度サインインしてください。'));
           }
         } else if (syncStatus.isSignedIn) {
           console.log('アプリ起動 - Google Driveからデータを取得（保留データなし）');
           try {
-            await syncFromDrive();
+            console.log('Google Drive連携完了 - 起動時同期処理開始');
+            dispatch(setIsSyncing(true));
+            try {
+              await fullBidirectionalSync();
+              console.log('Google Drive連携完了 - 起動時同期処理完了');
+            } finally {
+              dispatch(setIsSyncing(false));
+              dispatch(setLastSyncTime(new Date().toISOString()));
+            }
           } catch (syncError) {
             console.error('同期エラー - 認証状態をリセット:', syncError);
+            dispatch(setIsSyncing(false));
             dispatch(setIsSignedIn(false));
             dispatch(setError('認証が期限切れです。再度サインインしてください。'));
           }
@@ -593,18 +611,19 @@ export function useGoogleDriveSync() {
     };
 
     checkAuthAndSync();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 空の依存配列で初回のみ実行
 
   return {
     syncStatus,
     signInToDrive,
     manualSync,
-    startAutoSync,
-    stopAutoSync,
-    syncFromDrive,
-    // 新機能
-    syncNovel,
-    syncChangedNovels,
-    syncMetadata
+    fullBidirectionalSync,
+    deleteGoogleDriveData,
+    deleteNovelFromDrive,
+    // API制限情報
+    getRateLimitInfo: () => {
+      return getRateLimitInfo();
+    }
   };
 } 

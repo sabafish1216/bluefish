@@ -61,7 +61,7 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
   const [showErrorToast, setShowErrorToast] = useState(false);
 
   // 自動保存フック
-  const { isSaving, lastSaved, debouncedSave, saveImmediately } = useAutoSave({ novel, onSave });
+  const { isSaving, lastSaved, debouncedSave, saveImmediately, cleanup } = useAutoSave({ novel, onSave });
 
   useEffect(() => {
     setTitle(novel.title);
@@ -69,6 +69,13 @@ const WritingField: React.FC<WritingFieldProps> = ({ novel, onSave, onCancel }) 
     setSelectedTags(novel.tags);
     setSelectedFolderId(novel.folderId);
   }, [novel]);
+
+  // コンポーネントアンマウント時にcleanupを実行
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   // タイトル変更時の自動保存
   const handleTitleChange = useCallback((newTitle: string) => {
