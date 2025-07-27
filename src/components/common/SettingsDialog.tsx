@@ -142,7 +142,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
             </Button>
           ) : (
             <Box>
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                 <Button 
                   variant="outlined" 
                   onClick={handleManualSync}
@@ -153,7 +153,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
                 {syncStatus.isSyncing && (
                   <CircularProgress size={20} />
                 )}
-              </Box>
+          </Box>
               {syncStatus.lastSyncTime && (
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   最終同期: {new Date(syncStatus.lastSyncTime).toLocaleString('ja-JP')}

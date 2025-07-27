@@ -8,14 +8,30 @@ import {
   setError,
   setIsSignedIn,
 } from '../features/googleDriveSync/googleDriveSyncSlice';
-import { setNovels } from '../features/novels/novelsSlice';
+import { 
+  setNovels, 
+  setNovelSyncing, 
+  setNovelLastSync, 
+  resolveNovelConflict,
+  updateNovel,
+  migrateNovels
+} from '../features/novels/novelsSlice';
 import { setFolders } from '../features/folders/foldersSlice';
 import { setTags } from '../features/tags/tagsSlice';
 import { setSettings } from '../features/settings/settingsSlice';
+import { Novel } from '../features/novels/novelsSlice';
 
 export function useGoogleDriveSync() {
   const dispatch = useDispatch();
-  const { syncNovelData, getNovelData, signIn, checkAuthStatus } = useGoogleDriveGIS();
+  const { 
+    syncNovelData, 
+    getNovelData, 
+    syncIndividualNovel, 
+    getIndividualNovel, 
+    resolveConflict,
+    signIn, 
+    checkAuthStatus 
+  } = useGoogleDriveGIS();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef(false);
 
@@ -26,10 +42,20 @@ export function useGoogleDriveSync() {
   const settings = useSelector((state: RootState) => state.settings);
   const syncStatus = useSelector((state: RootState) => state.googleDriveSync);
 
-  // 全データを取得
-  const getAllData = useCallback(() => {
+  // メタデータを取得（小説の基本情報のみ）
+  const getMetadata = useCallback(() => {
     return {
-      novels,
+      novels: novels.map(novel => ({
+        id: novel.id,
+        title: novel.title,
+        tags: novel.tags,
+        folderId: novel.folderId,
+        createdAt: novel.createdAt,
+        updatedAt: novel.updatedAt,
+        version: novel.version,
+        lastSyncAt: novel.lastSyncAt,
+        bodyLength: novel.body.length
+      })),
       folders,
       tags,
       settings,
@@ -37,15 +63,106 @@ export function useGoogleDriveSync() {
     };
   }, [novels, folders, tags, settings]);
 
-  // Google Driveに同期
+  // 個別小説の同期
+  const syncNovel = useCallback(async (novel: Novel) => {
+    if (!syncStatus.isSignedIn) return;
+    
+    console.log('個別小説同期開始:', {
+      id: novel.id,
+      title: novel.title,
+      version: novel.version
+    });
+
+    try {
+      dispatch(setNovelSyncing({ id: novel.id, isSyncing: true }));
+      
+      // リモートの小説データを取得して競合チェック
+      const remoteNovel = await getIndividualNovel(novel.id);
+      
+      if (remoteNovel) {
+        // 競合解決
+        const resolvedNovel = resolveConflict(novel, remoteNovel);
+        
+        if (resolvedNovel.id !== novel.id || resolvedNovel.version !== novel.version) {
+          // 競合が解決された場合、ローカルを更新
+          console.log('競合解決 - ローカルを更新');
+          dispatch(resolveNovelConflict({ 
+            id: novel.id, 
+            novel: resolvedNovel, 
+            resolvedVersion: Math.max(novel.version, remoteNovel.version) + 1 
+          }));
+          
+          // 解決されたデータを同期
+          await syncIndividualNovel(resolvedNovel);
+        } else {
+          // 競合なし、ローカルデータを同期
+          await syncIndividualNovel(novel);
+        }
+      } else {
+        // リモートに存在しない場合、新規同期
+        await syncIndividualNovel(novel);
+      }
+      
+      dispatch(setNovelLastSync({ 
+        id: novel.id, 
+        lastSyncAt: new Date().toISOString() 
+      }));
+      dispatch(setNovelSyncing({ id: novel.id, isSyncing: false }));
+      
+      console.log('個別小説同期完了:', novel.id);
+    } catch (error) {
+      console.error('個別小説同期エラー:', error);
+      dispatch(setNovelSyncing({ id: novel.id, isSyncing: false }));
+      dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
+    }
+  }, [syncStatus.isSignedIn, getIndividualNovel, resolveConflict, syncIndividualNovel, dispatch]);
+
+  // 変更された小説のみ同期
+  const syncChangedNovels = useCallback(async () => {
+    if (!syncStatus.isSignedIn) return;
+    
+    const changedNovels = novels.filter(novel => 
+      !novel.lastSyncAt || 
+      new Date(novel.updatedAt) > new Date(novel.lastSyncAt)
+    );
+    
+    console.log('変更された小説を同期:', changedNovels.length + '件');
+    
+    for (const novel of changedNovels) {
+      await syncNovel(novel);
+    }
+  }, [syncStatus.isSignedIn, novels, syncNovel]);
+
+  // メタデータの同期
+  const syncMetadata = useCallback(async () => {
+    if (!syncStatus.isSignedIn) return;
+    
+    console.log('メタデータ同期開始');
+    try {
+      const metadata = getMetadata();
+      await syncNovelData(metadata);
+      console.log('メタデータ同期完了');
+    } catch (error) {
+      console.error('メタデータ同期エラー:', error);
+      dispatch(setError(error instanceof Error ? error.message : 'メタデータ同期エラーが発生しました'));
+    }
+  }, [syncStatus.isSignedIn, getMetadata, syncNovelData, dispatch]);
+
+  // Google Driveに同期（個別同期 + メタデータ同期）
   const syncToDrive = useCallback(async () => {
     if (!syncStatus.isSignedIn) return;
     console.log('Google Drive同期開始:', new Date().toLocaleString());
+    
     try {
       dispatch(setIsSyncing(true));
       dispatch(setError(null));
-      const data = getAllData();
-      await syncNovelData(data);
+      
+      // 変更された小説を個別同期
+      await syncChangedNovels();
+      
+      // メタデータを同期
+      await syncMetadata();
+      
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
       dispatch(setError(null));
@@ -55,7 +172,7 @@ export function useGoogleDriveSync() {
       dispatch(setIsSyncing(false));
       dispatch(setError(error instanceof Error ? error.message : '同期エラーが発生しました'));
     }
-  }, [syncStatus.isSignedIn, syncNovelData, getAllData, dispatch]);
+  }, [syncStatus.isSignedIn, syncChangedNovels, syncMetadata, dispatch]);
 
   // Google Driveからデータを取得
   const syncFromDrive = useCallback(async () => {
@@ -76,42 +193,65 @@ export function useGoogleDriveSync() {
     try {
       dispatch(setIsSyncing(true));
       dispatch(setError(null));
-      const data = await getNovelData();
-      if (data) {
-        // Reduxの状態を更新
-        console.log('Google Driveからデータを取得:', {
-          novelCount: data.novels?.length || 0,
-          folderCount: data.folders?.length || 0,
-          novelTitles: data.novels?.map((n: any) => n.title).slice(0, 3) || []
+      
+      // メタデータを取得
+      const metadata = await getNovelData();
+      if (metadata) {
+        console.log('メタデータを取得:', {
+          novelCount: metadata.novels?.length || 0,
+          folderCount: metadata.folders?.length || 0
         });
         
-        // 現在のRedux状態を確認
-        const currentData = getAllData();
-        console.log('更新前のRedux状態:', {
-          novelCount: currentData.novels?.length || 0,
-          novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
-        });
-        
-        // 各データをReduxに反映
-        if (data.novels) {
-          console.log('Google Driveの小説データをReduxに設定:', data.novels.length + '件');
-          dispatch(setNovels(data.novels));
+        // フォルダ、タグ、設定を更新
+        if (metadata.folders) {
+          console.log('フォルダデータを設定:', metadata.folders.length + '件');
+          dispatch(setFolders(metadata.folders));
         }
-        if (data.folders) {
-          console.log('Google DriveのフォルダデータをReduxに設定:', data.folders.length + '件');
-          dispatch(setFolders(data.folders));
+        if (metadata.tags) {
+          console.log('タグデータを設定:', metadata.tags.length + '件');
+          dispatch(setTags(metadata.tags));
         }
-        if (data.tags) {
-          console.log('Google DriveのタグデータをReduxに設定:', data.tags.length + '件');
-          dispatch(setTags(data.tags));
-        }
-        if (data.settings) {
-          console.log('Google Driveの設定データをReduxに設定');
-          dispatch(setSettings(data.settings));
+        if (metadata.settings) {
+          console.log('設定データを設定');
+          dispatch(setSettings(metadata.settings));
         }
         
-        console.log('=== Google DriveデータでReduxを更新完了 ===');
+        // 各小説を個別に取得して競合解決
+        if (metadata.novels) {
+          console.log('小説データを個別取得開始:', metadata.novels.length + '件');
+          
+          for (const novelMeta of metadata.novels) {
+            try {
+              const remoteNovel = await getIndividualNovel(novelMeta.id);
+              
+              if (remoteNovel) {
+                // ローカルの小説を取得
+                const localNovel = novels.find(n => n.id === novelMeta.id);
+                
+                if (localNovel) {
+                  // 競合解決
+                  const resolvedNovel = resolveConflict(localNovel, remoteNovel);
+                  dispatch(resolveNovelConflict({
+                    id: novelMeta.id,
+                    novel: resolvedNovel,
+                    resolvedVersion: Math.max(localNovel.version, remoteNovel.version)
+                  }));
+                } else {
+                  // ローカルに存在しない場合、リモートを追加
+                  dispatch(updateNovel({
+                    ...remoteNovel,
+                    lastSyncAt: new Date().toISOString(),
+                    isSyncing: false
+                  }));
+                }
+              }
+            } catch (error) {
+              console.error(`小説 ${novelMeta.id} の取得エラー:`, error);
+            }
+          }
+        }
       }
+      
       dispatch(setIsSyncing(false));
       dispatch(setLastSyncTime(new Date().toISOString()));
       dispatch(setError(null));
@@ -148,7 +288,7 @@ export function useGoogleDriveSync() {
       
       dispatch(setError(errorMessage));
     }
-  }, [syncStatus.isSignedIn, getNovelData, dispatch]);
+  }, [syncStatus.isSignedIn, getNovelData, getIndividualNovel, resolveConflict, novels, dispatch]);
 
   // 手動同期
   const manualSync = useCallback(async () => {
@@ -213,7 +353,7 @@ export function useGoogleDriveSync() {
             
             // 保留データをGoogle Driveに同期
             console.log('保留データをGoogle Driveに同期');
-            await syncNovelData(pendingData);
+            await syncToDrive();
             console.log('保留データの同期完了');
             
             // 保留データを削除
@@ -263,7 +403,7 @@ export function useGoogleDriveSync() {
         // 同期的な同期処理（非同期処理は完了しないため）
         try {
           // 現在のデータを取得
-          const currentData = getAllData();
+          const currentData = getMetadata();
           const content = JSON.stringify(currentData, null, 2);
           
           // ローカルストレージに一時保存（次回起動時に同期）
@@ -296,7 +436,7 @@ export function useGoogleDriveSync() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [syncStatus.isSignedIn, getAllData, syncToDrive]);
+  }, [syncStatus.isSignedIn, getMetadata, syncToDrive]);
 
   // コンポーネントアンマウント時に自動同期を停止
   useEffect(() => {
@@ -316,6 +456,10 @@ export function useGoogleDriveSync() {
       try {
         hasInitializedRef.current = true;
         console.log('useEffect 実行開始');
+        
+        // 既存データのマイグレーションを実行
+        console.log('既存データのマイグレーションを実行');
+        dispatch(migrateNovels());
         
         const isAuthenticated = await checkAuthStatus();
         
@@ -345,7 +489,7 @@ export function useGoogleDriveSync() {
             });
             
             // 現在のRedux状態を確認
-            const currentData = getAllData();
+            const currentData = getMetadata();
             console.log('現在のRedux状態:', {
               novelCount: currentData.novels?.length || 0,
               novelTitles: currentData.novels?.map((n: any) => n.title).slice(0, 3) || []
@@ -373,7 +517,7 @@ export function useGoogleDriveSync() {
             
             // 保留データをGoogle Driveに同期
             console.log('保留データをGoogle Driveに同期開始');
-            await syncNovelData(pendingData);
+            await syncToDrive();
             console.log('保留データの同期完了');
             
             // 保留データを削除
@@ -458,5 +602,9 @@ export function useGoogleDriveSync() {
     startAutoSync,
     stopAutoSync,
     syncFromDrive,
+    // 新機能
+    syncNovel,
+    syncChangedNovels,
+    syncMetadata
   };
 } 

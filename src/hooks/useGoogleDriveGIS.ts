@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Novel } from '../features/novels/novelsSlice';
 
 declare global {
   interface Window {
@@ -39,12 +40,12 @@ export function useGoogleDriveGIS() {
         callback: async () => {
           try {
             console.log('gapi client loaded, initializing...');
-            await window.gapi.client.init({
-              apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            });
+          await window.gapi.client.init({
+            apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+          });
             console.log('gapi client initialized successfully');
-            resolve();
+          resolve();
           } catch (error) {
             console.error('gapi client init error:', error);
             reject(error);
@@ -104,17 +105,13 @@ export function useGoogleDriveGIS() {
         return false;
       }
 
-      // トークンの有効性をテスト（簡単なAPI呼び出し）
+      // トークンの有効性をテスト
       try {
-        await window.gapi.client.drive.files.list({
-          pageSize: 1,
-          fields: 'files(id)',
-        });
-        console.log('トークン有効性チェック - 成功');
+        await window.gapi.client.drive.files.list({ pageSize: 1 });
+        console.log('トークン有効性確認完了');
         return true;
-      } catch (apiError) {
-        console.log('トークン有効性チェック - 失敗（再認証が必要）:', apiError);
-        // トークンをクリア
+      } catch (testError) {
+        console.log('トークン無効:', testError);
         window.gapi.client.setToken(null);
         localStorage.removeItem('google_drive_token');
         return false;
@@ -125,13 +122,13 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // サインイン（ポップアップ方式、エラーハンドリング付き）
+  // サインイン
   const signIn = async (onSignedIn: () => void) => {
     try {
-      await initGapi();
-      if (!tokenClientRef.current) initTokenClient();
+    await initGapi();
+    if (!tokenClientRef.current) initTokenClient();
       
-      tokenClientRef.current.callback = (tokenResponse: any) => {
+    tokenClientRef.current.callback = (tokenResponse: any) => {
         try {
           // アクセストークンとリフレッシュトークンを保存
           const tokenData = {
@@ -143,17 +140,17 @@ export function useGoogleDriveGIS() {
           // ローカルストレージに保存（セキュリティ上の注意が必要）
           localStorage.setItem('google_drive_token', JSON.stringify(tokenData));
           
-          window.gapi.client.setToken({ access_token: tokenResponse.access_token });
-          onSignedIn();
+      window.gapi.client.setToken({ access_token: tokenResponse.access_token });
+      onSignedIn();
         } catch (tokenError) {
           console.warn('トークン設定エラー（無視可能）:', tokenError);
           // エラーを無視して続行
           onSignedIn();
         }
-      };
+    };
       
       try {
-        tokenClientRef.current.requestAccessToken();
+    tokenClientRef.current.requestAccessToken();
       } catch (requestError) {
         console.warn('アクセストークン要求エラー（無視可能）:', requestError);
         // エラーを無視して続行
@@ -241,7 +238,7 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // ファイル更新（既存ファイルの内容を更新）
+  // ファイル更新
   const updateFile = async (fileId: string, content: string) => {
     const boundary = '-------314159265358979323846';
     const delimiter = '\r\n--' + boundary + '\r\n';
@@ -270,7 +267,128 @@ export function useGoogleDriveGIS() {
     return res.result;
   };
 
-  // 小説データ全体をGoogle Driveに同期
+  // 個別小説の同期（新機能）
+  const syncIndividualNovel = async (novel: Novel) => {
+    const fileName = `novel-${novel.id}.json`;
+    const content = JSON.stringify(novel, null, 2);
+    
+    console.log('個別小説同期開始:', {
+      fileName,
+      novelId: novel.id,
+      title: novel.title,
+      version: novel.version,
+      dataSize: content.length
+    });
+    
+    // 既存ファイルを検索
+    const existingFile = await findFileByName(fileName);
+    console.log('既存ファイル検索結果:', existingFile);
+    
+    if (existingFile) {
+      // 既存ファイルを更新
+      console.log('既存ファイルを更新:', existingFile.id);
+      const result = await updateFile(existingFile.id, content);
+      console.log('ファイル更新完了:', result);
+      return result;
+    } else {
+      // 新規ファイルを作成
+      console.log('新規ファイルを作成');
+      const result = await uploadFile(fileName, content);
+      console.log('ファイル作成完了:', result);
+      return result;
+    }
+  };
+
+  // 個別小説の取得（新機能）
+  const getIndividualNovel = async (novelId: string) => {
+    const fileName = `novel-${novelId}.json`;
+    console.log('個別小説取得開始:', fileName);
+    
+    const existingFile = await findFileByName(fileName);
+    console.log('ファイル検索結果:', existingFile);
+    
+    if (existingFile) {
+      console.log('ファイルをダウンロード:', existingFile.id);
+      const content = await downloadFile(existingFile.id);
+      console.log('ダウンロード完了, コンテンツサイズ:', content.length);
+      
+      try {
+        const novel = JSON.parse(content) as Novel;
+        console.log('小説データ解析完了:', {
+          id: novel.id,
+          title: novel.title,
+          version: novel.version,
+          bodyLength: novel.body.length
+        });
+        return novel;
+      } catch (parseError) {
+        console.error('JSON解析エラー:', parseError);
+        console.log('生のコンテンツ:', content.substring(0, 200) + '...');
+        return null;
+      }
+    }
+    
+    console.log('ファイルが存在しません');
+    return null;
+  };
+
+  // 競合解決機能（新機能）
+  const resolveConflict = (localNovel: Novel, remoteNovel: Novel): Novel => {
+    console.log('競合解決開始:', {
+      localVersion: localNovel.version,
+      remoteVersion: remoteNovel.version,
+      localUpdatedAt: localNovel.updatedAt,
+      remoteUpdatedAt: remoteNovel.updatedAt
+    });
+
+    // バージョン番号が同じ場合は競合なし
+    if (localNovel.version === remoteNovel.version) {
+      console.log('競合なし - バージョンが同じ');
+      return localNovel;
+    }
+
+    // リモートの方が新しい場合
+    if (remoteNovel.version > localNovel.version) {
+      console.log('リモートの方が新しい - リモートを採用');
+      return {
+        ...remoteNovel,
+        lastSyncAt: new Date().toISOString(),
+        isSyncing: false
+      };
+    }
+
+    // ローカルの方が新しい場合
+    if (localNovel.version > remoteNovel.version) {
+      console.log('ローカルの方が新しい - ローカルを採用');
+      return {
+        ...localNovel,
+        lastSyncAt: new Date().toISOString(),
+        isSyncing: false
+      };
+    }
+
+    // タイムスタンプで比較（バージョンが同じ場合）
+    const localTime = new Date(localNovel.updatedAt).getTime();
+    const remoteTime = new Date(remoteNovel.updatedAt).getTime();
+
+    if (remoteTime > localTime) {
+      console.log('リモートの方が新しい - タイムスタンプ比較');
+      return {
+        ...remoteNovel,
+        lastSyncAt: new Date().toISOString(),
+        isSyncing: false
+      };
+    } else {
+      console.log('ローカルの方が新しい - タイムスタンプ比較');
+      return {
+        ...localNovel,
+        lastSyncAt: new Date().toISOString(),
+        isSyncing: false
+      };
+    }
+  };
+
+  // 小説データ全体をGoogle Driveに同期（従来の方式 - メタデータ用）
   const syncNovelData = async (novelData: any) => {
     const fileName = 'novel-writer-data.json';
     const content = JSON.stringify(novelData, null, 2);
@@ -302,7 +420,7 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // Google Driveから小説データを取得
+  // Google Driveから小説データを取得（従来の方式 - メタデータ用）
   const getNovelData = async () => {
     const fileName = 'novel-writer-data.json';
     console.log('getNovelData 開始:', fileName);
@@ -355,6 +473,10 @@ export function useGoogleDriveGIS() {
     findFileByName, 
     updateFile,
     syncNovelData,
-    getNovelData
+    getNovelData,
+    // 新機能
+    syncIndividualNovel,
+    getIndividualNovel,
+    resolveConflict
   };
 } 

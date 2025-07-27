@@ -9,3 +9,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* 同期アイコンの回転アニメーション */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 同期中のアイコンにアニメーションを適用 */
+.sync-spinning {
+  animation: spin 1s linear infinite;
+}

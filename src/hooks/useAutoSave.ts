@@ -2,14 +2,17 @@ import { useState, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { updateNovel } from '../features/novels/novelsSlice';
 import { Novel } from '../features/novels/novelsSlice';
+import { useGoogleDriveSync } from './useGoogleDriveSync';
 
 interface UseAutoSaveProps {
   novel: Novel;
   onSave?: (novel: Novel) => void;
+  enableIndividualSync?: boolean; // 個別同期を有効にするかどうか
 }
 
-export const useAutoSave = ({ novel, onSave }: UseAutoSaveProps) => {
+export const useAutoSave = ({ novel, onSave, enableIndividualSync = true }: UseAutoSaveProps) => {
   const dispatch = useDispatch();
+  const { syncNovel } = useGoogleDriveSync();
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,6 +37,18 @@ export const useAutoSave = ({ novel, onSave }: UseAutoSaveProps) => {
         dispatch(updateNovel(updatedNovel));
       }
 
+      // 個別同期が有効な場合、Google Driveに同期
+      if (enableIndividualSync) {
+        try {
+          console.log('個別同期を実行:', updatedNovel.id);
+          await syncNovel(updatedNovel);
+          console.log('個別同期完了');
+        } catch (syncError) {
+          console.error('個別同期エラー:', syncError);
+          // 同期エラーは自動保存の失敗とはしない
+        }
+      }
+
       setLastSaved(new Date());
       console.log('自動保存完了');
     } catch (error) {
@@ -41,7 +56,7 @@ export const useAutoSave = ({ novel, onSave }: UseAutoSaveProps) => {
     } finally {
       setIsSaving(false);
     }
-  }, [novel, onSave, dispatch]);
+  }, [novel, onSave, dispatch, enableIndividualSync, syncNovel]);
 
   const debouncedSave = useCallback((updatedData: Partial<Novel>) => {
     console.log('debouncedSave呼び出し:', updatedData);
