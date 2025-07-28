@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import { Novel } from '../features/novels/novelsSlice';
 
 declare global {
   interface Window {
@@ -284,16 +283,43 @@ export function useGoogleDriveGIS() {
     return res.result.files;
   };
 
-  // ファイルアップロード（multipart/related, boundary方式）
+  // ファイルアップロード（Multipart + Resumable ハイブリッド方式）
   const uploadFile = async (name: string, content: string) => {
-    const boundary = '-------314159265358979323846';
-    const delimiter = '\r\n--' + boundary + '\r\n';
-    const closeDelim = '\r\n--' + boundary + '--';
     const contentType = 'application/json';
     const metadata = {
       name,
       mimeType: contentType,
     };
+
+    // ファイルサイズを計算（UTF-8で3バイト/文字）
+    const contentSize = content.length * 3;
+    const metadataSize = JSON.stringify(metadata).length * 3;
+    const totalSize = contentSize + metadataSize + 1000; // オーバーヘッド分を追加
+
+    console.log('アップロードファイルサイズ:', {
+      contentSize: (contentSize / 1024 / 1024).toFixed(2) + 'MB',
+      metadataSize: (metadataSize / 1024).toFixed(2) + 'KB',
+      totalSize: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
+      useResumable: totalSize > 5 * 1024 * 1024
+    });
+
+    // 5MBを超える場合はResumable Upload方式を使用
+    if (totalSize > 5 * 1024 * 1024) {
+      console.log('ファイルサイズが5MBを超えるため、Resumable Upload方式を使用');
+      return await uploadFileResumable(name, content, metadata);
+    } else {
+      console.log('ファイルサイズが5MB以下なので、Multipart方式を使用');
+      return await uploadFileMultipart(name, content, metadata);
+    }
+  };
+
+  // Multipart方式のアップロード
+  const uploadFileMultipart = async (name: string, content: string, metadata: any) => {
+    const boundary = '-------314159265358979323846';
+    const delimiter = '\r\n--' + boundary + '\r\n';
+    const closeDelim = '\r\n--' + boundary + '--';
+    const contentType = 'application/json';
+    
     const multipartRequestBody =
       delimiter +
       'Content-Type: application/json\r\n\r\n' +
@@ -302,6 +328,7 @@ export function useGoogleDriveGIS() {
       'Content-Type: ' + contentType + '\r\n\r\n' +
       content +
       closeDelim;
+    
     const res = await window.gapi.client.request({
       path: '/upload/drive/v3/files',
       method: 'POST',
@@ -312,6 +339,52 @@ export function useGoogleDriveGIS() {
       body: multipartRequestBody,
     });
     return res.result.id;
+  };
+
+  // Resumable方式のアップロード
+  const uploadFileResumable = async (name: string, content: string, metadata: any) => {
+    console.log('Resumable Upload開始:', name);
+    
+    try {
+      // 1. セッション開始
+      const sessionResponse = await window.gapi.client.request({
+        path: '/upload/drive/v3/files',
+        method: 'POST',
+        params: { 
+          uploadType: 'resumable',
+          name: name,
+          mimeType: metadata.mimeType
+        },
+        headers: {
+          'X-Upload-Content-Type': metadata.mimeType,
+          'X-Upload-Content-Length': content.length.toString()
+        }
+      });
+
+      const sessionId = sessionResponse.headers['X-GUploader-UploadID'];
+      console.log('Resumable Uploadセッション開始:', sessionId);
+
+      // 2. データ転送
+      const uploadResponse = await window.gapi.client.request({
+        path: `/upload/drive/v3/files`,
+        method: 'PUT',
+        params: { 
+          uploadType: 'resumable',
+          upload_id: sessionId
+        },
+        headers: {
+          'Content-Type': metadata.mimeType,
+          'Content-Length': content.length.toString()
+        },
+        body: content
+      });
+
+      console.log('Resumable Upload完了:', uploadResponse.result.id);
+      return uploadResponse.result.id;
+    } catch (error) {
+      console.error('Resumable Uploadエラー:', error);
+      throw error;
+    }
   };
 
   // ファイルダウンロード
@@ -336,6 +409,13 @@ export function useGoogleDriveGIS() {
       });
       
       console.log('検索結果:', res.result);
+      
+      // res.resultがundefinedの場合の処理を追加
+      if (!res.result) {
+        console.log('検索結果がundefinedです');
+        return null;
+      }
+      
       console.log('見つかったファイル数:', res.result.files?.length || 0);
       
       if (res.result.files && res.result.files.length > 0) {
@@ -351,15 +431,42 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // ファイル更新
+  // ファイル更新（Multipart + Resumable ハイブリッド方式）
   const updateFile = async (fileId: string, content: string) => {
-    const boundary = '-------314159265358979323846';
-    const delimiter = '\r\n--' + boundary + '\r\n';
-    const closeDelim = '\r\n--' + boundary + '--';
     const contentType = 'application/json';
     const metadata = {
       mimeType: contentType,
     };
+
+    // ファイルサイズを計算（UTF-8で3バイト/文字）
+    const contentSize = content.length * 3;
+    const metadataSize = JSON.stringify(metadata).length * 3;
+    const totalSize = contentSize + metadataSize + 1000; // オーバーヘッド分を追加
+
+    console.log('更新ファイルサイズ:', {
+      contentSize: (contentSize / 1024 / 1024).toFixed(2) + 'MB',
+      metadataSize: (metadataSize / 1024).toFixed(2) + 'KB',
+      totalSize: (totalSize / 1024 / 1024).toFixed(2) + 'MB',
+      useResumable: totalSize > 5 * 1024 * 1024
+    });
+
+    // 5MBを超える場合はResumable Upload方式を使用
+    if (totalSize > 5 * 1024 * 1024) {
+      console.log('ファイルサイズが5MBを超えるため、Resumable Update方式を使用');
+      return await updateFileResumable(fileId, content, metadata);
+    } else {
+      console.log('ファイルサイズが5MB以下なので、Multipart Update方式を使用');
+      return await updateFileMultipart(fileId, content, metadata);
+    }
+  };
+
+  // Multipart方式のファイル更新
+  const updateFileMultipart = async (fileId: string, content: string, metadata: any) => {
+    const boundary = '-------314159265358979323846';
+    const delimiter = '\r\n--' + boundary + '\r\n';
+    const closeDelim = '\r\n--' + boundary + '--';
+    const contentType = 'application/json';
+    
     const multipartRequestBody =
       delimiter +
       'Content-Type: application/json\r\n\r\n' +
@@ -368,6 +475,7 @@ export function useGoogleDriveGIS() {
       'Content-Type: ' + contentType + '\r\n\r\n' +
       content +
       closeDelim;
+    
     const res = await window.gapi.client.request({
       path: `/upload/drive/v3/files/${fileId}`,
       method: 'PATCH',
@@ -380,169 +488,52 @@ export function useGoogleDriveGIS() {
     return res.result;
   };
 
-  // 個別小説の同期（新機能）
-  const syncIndividualNovel = async (novel: Novel) => {
-    // API制限チェック
-    if (!checkRateLimit()) {
-      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
-    }
-
-    const fileName = `novel-${novel.id}.json`;
-    const content = JSON.stringify(novel, null, 2);
-    
-    console.log('個別小説同期開始:', {
-      fileName,
-      novelId: novel.id,
-      title: novel.title,
-      bodyLength: novel.body.length,
-      bodyPreview: novel.body.substring(0, 100) + '...',
-      dataSize: content.length
-    });
+  // Resumable方式のファイル更新
+  const updateFileResumable = async (fileId: string, content: string, metadata: any) => {
+    console.log('Resumable Update開始:', fileId);
     
     try {
-      // 既存ファイルを検索
-      recordAPICall();
-      const existingFile = await findFileByName(fileName);
-      console.log('既存ファイル検索結果:', existingFile);
-      
-      if (existingFile) {
-        // 既存ファイルを更新
-        console.log('既存ファイルを更新:', existingFile.id);
-        recordAPICall();
-        const result = await updateFile(existingFile.id, content);
-        console.log('ファイル更新完了:', result);
-        return result;
-      } else {
-        // 新規ファイルを作成
-        console.log('新規ファイルを作成');
-        recordAPICall();
-        const result = await uploadFile(fileName, content);
-        console.log('ファイル作成完了:', result);
-        return result;
-      }
-    } catch (error) {
-      console.error('個別小説同期エラー:', error);
-      throw error;
-    }
-  };
-
-  // 個別小説の取得（新機能）
-  const getIndividualNovel = async (novelId: string) => {
-    // API制限チェック
-    if (!checkRateLimit()) {
-      throw new Error('API制限に達しました。しばらく待ってから再試行してください。');
-    }
-
-    const fileName = `novel-${novelId}.json`;
-    console.log('個別小説取得開始:', fileName);
-    
-    try {
-      recordAPICall();
-      const existingFile = await findFileByName(fileName);
-      console.log('ファイル検索結果:', existingFile);
-      
-      if (existingFile) {
-        console.log('ファイルをダウンロード:', existingFile.id);
-        recordAPICall();
-        const content = await downloadFile(existingFile.id);
-        console.log('ダウンロード完了, コンテンツサイズ:', content.length);
-        
-        try {
-          const novel = JSON.parse(content) as Novel;
-          console.log('小説データ解析完了:', {
-            id: novel.id,
-            title: novel.title,
-            bodyLength: novel.body.length,
-            bodyPreview: novel.body.substring(0, 100) + '...',
-            updatedAt: novel.updatedAt
-          });
-          return novel;
-        } catch (parseError) {
-          console.error('JSON解析エラー:', parseError);
-          console.log('生のコンテンツ:', content.substring(0, 200) + '...');
-          return null;
+      // 1. セッション開始
+      const sessionResponse = await window.gapi.client.request({
+        path: `/upload/drive/v3/files/${fileId}`,
+        method: 'PATCH',
+        params: { 
+          uploadType: 'resumable',
+          mimeType: metadata.mimeType
+        },
+        headers: {
+          'X-Upload-Content-Type': metadata.mimeType,
+          'X-Upload-Content-Length': content.length.toString()
         }
-      }
-      
-      console.log('ファイルが存在しません');
-      return null;
+      });
+
+      const sessionId = sessionResponse.headers['X-GUploader-UploadID'];
+      console.log('Resumable Updateセッション開始:', sessionId);
+
+      // 2. データ転送
+      const uploadResponse = await window.gapi.client.request({
+        path: `/upload/drive/v3/files/${fileId}`,
+        method: 'PUT',
+        params: { 
+          uploadType: 'resumable',
+          upload_id: sessionId
+        },
+        headers: {
+          'Content-Type': metadata.mimeType,
+          'Content-Length': content.length.toString()
+        },
+        body: content
+      });
+
+      console.log('Resumable Update完了:', uploadResponse.result.id);
+      return uploadResponse.result;
     } catch (error) {
-      console.error('個別小説取得エラー:', error);
+      console.error('Resumable Updateエラー:', error);
       throw error;
     }
   };
 
-  // 競合解決機能（新機能）
-  const resolveConflict = (localNovel: Novel, remoteNovel: Novel): Novel => {
-    console.log('競合解決開始:', {
-      localTitle: localNovel.title,
-      remoteTitle: remoteNovel.title,
-      localBodyLength: localNovel.body.length,
-      remoteBodyLength: remoteNovel.body.length,
-      localUpdatedAt: localNovel.updatedAt,
-      remoteUpdatedAt: remoteNovel.updatedAt
-    });
-
-    // 更新日時で比較
-    const localTime = new Date(localNovel.updatedAt).getTime();
-    const remoteTime = new Date(remoteNovel.updatedAt).getTime();
-
-    if (remoteTime > localTime) {
-      console.log('リモートの方が新しい - 更新日時比較');
-      console.log('リモートデータの詳細:', {
-        title: remoteNovel.title,
-        bodyLength: remoteNovel.body.length,
-        bodyPreview: remoteNovel.body.substring(0, 100) + '...',
-        updatedAt: remoteNovel.updatedAt
-      });
-      return {
-        ...remoteNovel,
-        lastSyncAt: new Date().toISOString(),
-        isSyncing: false
-      };
-    } else if (localTime > remoteTime) {
-      console.log('ローカルの方が新しい - 更新日時比較');
-      console.log('ローカルデータの詳細:', {
-        title: localNovel.title,
-        bodyLength: localNovel.body.length,
-        bodyPreview: localNovel.body.substring(0, 100) + '...',
-        updatedAt: localNovel.updatedAt
-      });
-      return {
-        ...localNovel,
-        lastSyncAt: new Date().toISOString(),
-        isSyncing: false
-      };
-    } else {
-      // 同じ時刻の場合、本文の内容を比較
-      console.log('更新日時が同じ - 本文の内容を比較');
-      if (localNovel.body !== remoteNovel.body) {
-        // 本文が異なる場合、リモートのデータを優先（より完全なデータ）
-        console.log('本文が異なる - リモートのデータを優先');
-        console.log('リモートデータの詳細:', {
-          title: remoteNovel.title,
-          bodyLength: remoteNovel.body.length,
-          bodyPreview: remoteNovel.body.substring(0, 100) + '...',
-          updatedAt: remoteNovel.updatedAt
-        });
-        return {
-          ...remoteNovel,
-          lastSyncAt: new Date().toISOString(),
-          isSyncing: false
-        };
-      } else {
-        // 本文も同じ場合（真の競合なし）
-        console.log('更新日時と本文が同じ - 真の競合なし');
-        return {
-          ...localNovel,
-          lastSyncAt: new Date().toISOString(),
-          isSyncing: false
-        };
-      }
-    }
-  };
-
-  // 小説データ全体をGoogle Driveに同期（従来の方式 - メタデータ用）
+  // 小説データ全体をGoogle Driveに同期（統合ファイル方式）
   const syncNovelData = async (novelData: any) => {
     // API制限チェック
     if (!checkRateLimit()) {
@@ -552,7 +543,7 @@ export function useGoogleDriveGIS() {
     const fileName = 'novel-writer-data.json';
     const content = JSON.stringify(novelData, null, 2);
     
-    console.log('syncNovelData 開始:', {
+    console.log('統合ファイル同期開始:', {
       fileName,
       dataSize: content.length,
       novelCount: novelData.novels?.length || 0,
@@ -582,12 +573,12 @@ export function useGoogleDriveGIS() {
         return result;
       }
     } catch (error) {
-      console.error('メタデータ同期エラー:', error);
+      console.error('統合ファイル同期エラー:', error);
       throw error;
     }
   };
 
-  // Google Driveから小説データを取得（従来の方式 - メタデータ用）
+  // Google Driveから小説データを取得（統合ファイル方式）
   const getNovelData = async () => {
     // API制限チェック
     if (!checkRateLimit()) {
@@ -595,7 +586,7 @@ export function useGoogleDriveGIS() {
     }
 
     const fileName = 'novel-writer-data.json';
-    console.log('getNovelData 開始:', fileName);
+    console.log('統合ファイル取得開始:', fileName);
     
     try {
       recordAPICall();
@@ -626,7 +617,7 @@ export function useGoogleDriveGIS() {
       console.log('ファイルが存在しません');
       return null; // ファイルが存在しない場合
     } catch (error) {
-      console.error('メタデータ取得エラー:', error);
+      console.error('統合ファイル取得エラー:', error);
       throw error;
     }
   };
@@ -683,47 +674,18 @@ export function useGoogleDriveGIS() {
     }
   };
 
-  // すべての小説関連ファイルを削除
+  // すべての小説関連ファイルを削除（統合ファイル方式では1ファイルのみ）
   const deleteAllNovelFiles = async () => {
-    console.log('すべての小説関連ファイル削除開始');
+    console.log('統合ファイル削除開始');
     
     try {
-      // メタデータファイルを削除
-      console.log('メタデータファイルを削除');
+      // 統合ファイルのみを削除
+      console.log('統合ファイルを削除');
       await deleteFileByName('novel-writer-data.json');
       
-      // 個別小説ファイルを削除
-      const files = await listFiles();
-      const novelFiles = files.filter((file: any) => 
-        file.name.startsWith('novel-') && file.name.endsWith('.json')
-      );
-      
-      console.log('個別小説ファイル削除:', novelFiles.length + '件');
-      for (const file of novelFiles) {
-        console.log('小説ファイルを削除:', file.name);
-        await deleteFile(file.id);
-      }
-      
-      console.log('すべての小説関連ファイル削除完了');
+      console.log('統合ファイル削除完了');
     } catch (error) {
-      console.error('すべての小説関連ファイル削除エラー:', error);
-      throw error;
-    }
-  };
-
-  // 個別小説ファイルを削除
-  const deleteIndividualNovel = async (novelId: string) => {
-    console.log('個別小説ファイル削除開始:', novelId);
-    
-    try {
-      const fileName = `novel-${novelId}.json`;
-      console.log('削除対象ファイル:', fileName);
-      
-      const result = await deleteFileByName(fileName);
-      console.log('個別小説ファイル削除完了:', result);
-      return result;
-    } catch (error) {
-      console.error('個別小説ファイル削除エラー:', error);
+      console.error('統合ファイル削除エラー:', error);
       throw error;
     }
   };
@@ -739,17 +701,12 @@ export function useGoogleDriveGIS() {
     updateFile,
     syncNovelData,
     getNovelData,
-    // 新機能
-    syncIndividualNovel,
-    getIndividualNovel,
-    resolveConflict,
     // API制限関連
     checkRateLimit,
     recordAPICall,
     getRateLimitInfo,
     deleteFile,
     deleteFileByName,
-    deleteAllNovelFiles,
-    deleteIndividualNovel
+    deleteAllNovelFiles
   };
 } 

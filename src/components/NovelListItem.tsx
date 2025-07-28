@@ -47,7 +47,7 @@ const NovelListItem: React.FC<Props> = ({
   }, [novel.tags, tags]);
 
   const bodyPreview = useMemo(() => {
-    return novel.body.trim().substring(0, 100);
+    return novel.body?.trim()?.substring(0, 100) || '';
   }, [novel.body]);
 
   const showFolderChip = useMemo(() => {
@@ -115,7 +115,7 @@ const NovelListItem: React.FC<Props> = ({
             <Typography 
               variant="body2" 
               color="text.secondary" 
-              component="span"
+              component="div"
               sx={{ 
                 mb: 1,
                 display: '-webkit-box',
@@ -160,7 +160,7 @@ const NovelListItem: React.FC<Props> = ({
             <Typography 
               variant="caption" 
               color="text.secondary"
-              component="span"
+              component="div"
               sx={{ fontSize: '0.7rem' }}
             >
               {dateText}
