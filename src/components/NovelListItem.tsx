@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ListItem, ListItemText, ListItemSecondaryAction, IconButton, Chip, Box, Typography, CircularProgress } from '@mui/material';
+import { ListItem, ListItemText, ListItemSecondaryAction, IconButton, Chip, Box, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Novel } from '../features/novels/novelsSlice';
 
