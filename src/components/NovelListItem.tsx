@@ -99,7 +99,7 @@ const NovelListItem: React.FC<Props> = ({
             >
               {novel.title}
             </Typography>
-            {novel.isSyncing && (
+            {/* {novel.isSyncing && (
               <CircularProgress 
                 size={16} 
                 sx={{ 
@@ -107,7 +107,7 @@ const NovelListItem: React.FC<Props> = ({
                   ml: 1
                 }} 
               />
-            )}
+            )} */}
           </Box>
         }
         secondary={

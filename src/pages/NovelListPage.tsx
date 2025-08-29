@@ -5,14 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { List, Button, Box, Typography, Dialog, DialogTitle, DialogActions } from '@mui/material';
 import NovelListItem from '../components/NovelListItem';
 import { deleteNovel } from '../features/novels/novelsSlice';
-import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
+// import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
 
 const NovelListPage: React.FC = () => {
   const novels = useSelector((state: RootState) => state.novels.novels);
   const folders = useSelector((state: RootState) => state.folders.folders);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { deleteNovelFromDrive, syncStatus } = useGoogleDriveSync();
+  // const { deleteNovelFromDrive, syncStatus } = useGoogleDriveSync();
 
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
 
@@ -24,12 +24,12 @@ const NovelListPage: React.FC = () => {
     if (deleteId) {
       try {
         // Google Drive連携時はGoogle Driveからも削除
-        if (syncStatus.isSignedIn) {
-          console.log('Google Drive連携時 - Google Driveからも削除');
-          await deleteNovelFromDrive(deleteId);
-        } else {
-          console.log('Google Drive未連携時 - ローカル削除のみ');
-        }
+        // if (syncStatus.isSignedIn) {
+        //   console.log('Google Drive連携時 - Google Driveからも削除');
+        //   await deleteNovelFromDrive(deleteId);
+        // } else {
+        //   console.log('Google Drive未連携時 - ローカル削除のみ');
+        // }
         
         // ローカルデータを削除
         dispatch(deleteNovel(deleteId));

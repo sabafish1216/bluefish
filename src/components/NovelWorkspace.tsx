@@ -52,9 +52,9 @@ import EmptyState from './common/EmptyState';
 import ExpandableSection from './common/ExpandableSection';
 import SettingsDialog from './common/SettingsDialog';
 import MobileDrawer from './common/MobileDrawer';
-import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
+// import { GoogleDriveSyncButton } from './GoogleDriveSyncButton';
 import packageJson from '../../package.json';
-import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
+// import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
 
 const NovelWorkspace: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -79,7 +79,7 @@ const NovelWorkspace: React.FC = () => {
 
   const { isMobile } = useResponsive();
   const muiTheme = useTheme();
-  const { deleteNovelFromDrive, syncStatus } = useGoogleDriveSync();
+  // const { deleteNovelFromDrive, syncStatus } = useGoogleDriveSync();
 
   // カスタムフックの使用
   const { drawerWidth, isResizing, handleMouseDown, handleDoubleClick } = useDrawerResize({
@@ -156,12 +156,12 @@ const NovelWorkspace: React.FC = () => {
     if (window.confirm('この作品を削除しますか？この操作は取り消せません。')) {
       try {
         // Google Drive連携時はGoogle Driveからも削除
-        if (syncStatus.isSignedIn) {
-          console.log('Google Drive連携時 - Google Driveからも削除');
-          await deleteNovelFromDrive(novelId);
-        } else {
-          console.log('Google Drive未連携時 - ローカル削除のみ');
-        }
+        // if (syncStatus.isSignedIn) {
+        //   console.log('Google Drive連携時 - Google Driveからも削除');
+        //   await deleteNovelFromDrive(novelId);
+        // } else {
+        //   console.log('Google Drive未連携時 - ローカル削除のみ');
+        // }
         
         // ローカルデータを削除
         dispatch(deleteNovel(novelId));
@@ -178,7 +178,7 @@ const NovelWorkspace: React.FC = () => {
         }
       }
     }
-  }, [dispatch, selectedNovelId, syncStatus.isSignedIn, deleteNovelFromDrive]);
+  }, [dispatch, selectedNovelId]);
 
   const handleAnalyticsToggle = useCallback(() => {
     setShowAnalytics(!showAnalytics);
@@ -315,7 +315,7 @@ const NovelWorkspace: React.FC = () => {
             >
               BlueFish
             </Typography>
-                            <GoogleDriveSyncButton variant="icon" size="small" />
+                            {/* GoogleDriveSyncButton variant="icon" size="small" /> */}
             <IconButton
               color="inherit"
               onClick={() => setSettingsModalOpen(true)}
@@ -528,10 +528,10 @@ const NovelWorkspace: React.FC = () => {
               BlueFish
             </Typography>
           </Box>
-          {/* Google Drive同期ボタン */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                            <GoogleDriveSyncButton variant="button" size="small" />
-          </Box>
+                    {/* Google Drive同期ボタン */}
+          {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <GoogleDriveSyncButton variant="button" size="small" />
+          </Box> */}
           {/* タイトル下に4つのFabボタンを横並びで配置 */}
           <ActionButtons buttons={actionButtons} />
           {/* フォルダ作成モーダル */}

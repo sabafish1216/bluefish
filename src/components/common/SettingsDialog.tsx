@@ -174,7 +174,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
         />
         <Divider sx={{ my: 2 }} />
         {/* Google Drive連携 */}
-        <Typography variant="subtitle1" gutterBottom>Google Drive連携</Typography>
+        {/* <Typography variant="subtitle1" gutterBottom>Google Drive連携</Typography>
         <Box sx={{ mb: 2 }}>
           {!syncStatus.isSignedIn ? (
             <Button 
@@ -220,10 +220,10 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
             ※ 初回サインイン時は認証ウィンドウが開きます。ブラウザのポップアップを許可してください。
           </Typography>
-        </Box>
+        </Box> */}
         <Divider sx={{ my: 2 }} />
         {/* API制限情報 */}
-        <Typography variant="subtitle1" gutterBottom>API制限情報</Typography>
+        {/* <Typography variant="subtitle1" gutterBottom>API制限情報</Typography>
         {rateLimitInfo ? (
           <List>
             <ListItem>
@@ -240,7 +240,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
           <Typography variant="body2" color="text.secondary">
             リクエスト制限情報は利用可能です。
           </Typography>
-        )}
+        )} */}
         <Divider sx={{ my: 2 }} />
         {/* データリセット */}
         <Typography variant="subtitle1" gutterBottom>データ管理</Typography>
@@ -254,7 +254,7 @@ const SettingsDialog: React.FC<{ open: boolean; onClose: () => void }> = ({ open
             すべてのデータをリセット
           </Button>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            小説、フォルダ、タグ、設定、Google Drive同期状態をすべてリセットします。
+            小説、フォルダ、タグ、設定をすべてリセットします。
           </Typography>
         </Box>
       </DialogContent>
