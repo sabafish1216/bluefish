@@ -517,23 +517,29 @@ const NovelWorkspace: React.FC = () => {
           onMouseDown={handleMouseDown}
           onDoubleClick={handleDoubleClick}
         />
-        <Box sx={{ pt: 3, pl: 3, pr: 3, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <img
-              src={getIconSrc()}
-              alt="BlueFish Icon"
-              style={{ width: 32, height: 32, marginRight: 8 }}
-            />
-            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-              BlueFish
-            </Typography>
+        
+        {/* ドロワーのコンテンツ */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* ヘッダー部分 */}
+          <Box sx={{ pt: 3, pl: 3, pr: 3, borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <img
+                src={getIconSrc()}
+                alt="BlueFish Icon"
+                style={{ width: 32, height: 32, marginRight: 8 }}
+              />
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                BlueFish
+              </Typography>
+            </Box>
+            {/* Google Drive同期ボタン */}
+            {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              {/* <GoogleDriveSyncButton variant="button" size="small" /> */}
+            {/* </Box> */}
+            {/* タイトル下に4つのFabボタンを横並びで配置 */}
+            <ActionButtons buttons={actionButtons} />
           </Box>
-                    {/* Google Drive同期ボタン */}
-          {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <GoogleDriveSyncButton variant="button" size="small" />
-          </Box> */}
-          {/* タイトル下に4つのFabボタンを横並びで配置 */}
-          <ActionButtons buttons={actionButtons} />
+          
           {/* フォルダ作成モーダル */}
           <Dialog open={folderModalOpen} onClose={() => setFolderModalOpen(false)} maxWidth="xs" fullWidth sx={{ '& .MuiDialog-paper': { minWidth: 400, maxWidth: 600 } }}>
             <DialogTitle>新しいフォルダ</DialogTitle>
@@ -577,33 +583,32 @@ const NovelWorkspace: React.FC = () => {
               }}
             />
           </Portal>
-        </Box>
 
-        <Tabs
-          value={selectedTab}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab 
-            icon={<BookIcon />} 
-            label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "すべて" : undefined}
-            iconPosition="start"
-            sx={{ minHeight: 48 }}
-          />
-          <Tab 
-            icon={<FolderIcon />} 
-            label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "フォルダ" : undefined}
-            iconPosition="start"
-            sx={{ minHeight: 48 }}
-          />
-          <Tab 
-            icon={<TagIcon />} 
-            label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "タグ" : undefined}
-            iconPosition="start"
-            sx={{ minHeight: 48 }}
-          />
-        </Tabs>
+          <Tabs
+            value={selectedTab}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{ borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab 
+              icon={<BookIcon />} 
+              label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "すべて" : undefined}
+              iconPosition="start"
+              sx={{ minHeight: 48 }}
+            />
+            <Tab 
+              icon={<FolderIcon />} 
+              label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "フォルダ" : undefined}
+              iconPosition="start"
+              sx={{ minHeight: 48 }}
+            />
+            <Tab 
+              icon={<TagIcon />} 
+              label={drawerWidth > DRAWER_CONSTANTS.NARROW_WIDTH ? "タグ" : undefined}
+              iconPosition="start"
+              sx={{ minHeight: 48 }}
+            />
+          </Tabs>
 
         <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
           {/* すべての作品タブ */}
@@ -718,6 +723,7 @@ const NovelWorkspace: React.FC = () => {
         <Box sx={{ p: 2, textAlign: 'center', mt: 'auto', color: 'text.secondary', fontSize: 12 }}>
           <div>&copy; Ryuto Kobayashi</div>
           <div>v{packageJson.version}</div>
+        </Box>
         </Box>
       </Drawer>
 
