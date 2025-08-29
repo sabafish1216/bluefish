@@ -126,7 +126,7 @@ novel-writer/
 このアプリはVercelでホスティングされています。
 
 - **本番URL**: [BlueFish App](https://bluefish-7ua4lvev3-sabafish1028s-projects.vercel.app)
-- **自動デプロイ**: GitHubにプッシュすると自動的にデプロイ
+- **自動デプロイ**: GitHubにプッシュすると自動的にVercelにデプロイ
 
 ## ライセンス
 
